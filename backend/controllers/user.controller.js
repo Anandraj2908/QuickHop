@@ -258,6 +258,19 @@ const getUserById = asyncHandler(async (req, res) => {
     }
 });
 
+const getCurrentRide = asyncHandler(async (req, res) => {
+    try {
+        const currentRide = await Ride.findOne({
+            userId: req.user._id,
+            status: "Processing"
+        });
+
+        return res.status(200).json(new ApiResponse(200, currentRide, "Current ride fetched successfully"));
+    } catch (error) {
+        throw new ApiError(500, "Something went wrong while fetching current ride")
+    }
+});
+
 const hello = asyncHandler(
     async (req, res) => {
         return res.status(200).json(
@@ -276,7 +289,8 @@ export {
     refreshAccessToken,
     currentUser,
     getAllRides,
-    getUserById
+    getUserById,
+    getCurrentRide
 };
 
 //signup using phone number

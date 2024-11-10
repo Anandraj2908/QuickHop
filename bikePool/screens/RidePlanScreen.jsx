@@ -10,6 +10,7 @@ import {
     ScrollView,
     Modal,
     Platform,
+    Dimensions,
 } from 'react-native';
 import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import RideConfirmationModal from '../components/RideConfirmationModal';
@@ -22,7 +23,8 @@ import Constants from 'expo-constants';
 import * as Device from 'expo-device';
 import axios from 'axios';
 import useGetUserData from '../hooks/useGetUserData.js';
-
+import AsyncStorage from '@react-native-async-storage/async-storage';
+const { width } = Dimensions.get('window');
 
 const RidePlanScreen = () => {
     const { loading, user } = useGetUserData();
@@ -53,6 +55,8 @@ const RidePlanScreen = () => {
     const [selectedRider, setSelectedRider] = useState(null);
     const [showConfirmation, setShowConfirmation] = useState(false);
     const [animationCount, setAnimationCount] = useState(0);
+    const [isCurrentRide, setIsCurrentRide] = useState(false);
+    const [rideDetails, setRideDetails] = useState(null);
     const [region, setRegion] = useState({
         latitude: 12.906954343,
         longitude: 77.499163806,
@@ -82,8 +86,6 @@ const RidePlanScreen = () => {
         setShowLocations(false);
     };
 
-    
-
     const handleRiderSelect = (rider) => {
         setSelectedRider(rider);
     };
@@ -96,8 +98,40 @@ const RidePlanScreen = () => {
         }
     };
 
-    
+    const saveOrderData = async () => {
+        try {
+            await AsyncStorage.setItem('orderData', JSON.stringify(orderDataRef.current));
+        } catch (e) {
+            console.error("Error saving order data:", e);
+        }
+    };
 
+    const loadOrderData = async () => {
+        try {
+            const savedOrderData = await AsyncStorage.getItem('orderData');
+            if (savedOrderData) {
+                orderDataRef.current = JSON.parse(savedOrderData);
+            }
+        } catch (e) {
+            console.error("Error loading order data:", e);
+        }
+    };
+
+    const orderDataRef = useRef({
+        driver: null,
+        pickupLocation: pickup,
+        dropoffLocation: dropoff,
+        rideCharge: rideCharge,
+    });
+
+    useEffect(() => {
+        orderDataRef.current = {
+            driver: null, 
+            pickupLocation: pickup,
+            dropoffLocation: dropoff,
+            rideCharge: rideCharge,
+        };
+    }, [pickup, dropoff, rideCharge]);
     
 
     Notifications.setNotificationHandler({
@@ -113,23 +147,15 @@ const RidePlanScreen = () => {
         notificationListener.current =
         Notifications.addNotificationReceivedListener((notification) => {
             if(notification.request.content.data.orderData.status === "accepted"){
-
-            const orderData = {
-            currentLocation: notification.request.content.data.currentLocation,
-            marker: notification.request.content.data.marker,
-            distance: notification.request.content.data.distance,
-            driver: notification.request.content.data.orderData,
-            pickupLocation: pickup,
-            dropoffLocation: dropoff,
-            rideCharge,
-            };
+            orderDataRef.current.driver = notification.request.content.data.orderData;
+            saveOrderData();
             setShowConfirmation(false);
             router.push({
             pathname: "/(routes)/ride-details",
-            params: { orderData: JSON.stringify(orderData) },
+            params: { orderData: JSON.stringify(orderDataRef.current) },
             });
             }
-            else{
+            else if(notification.request.content.data.orderData.status === "cancelled"){
                 setShowConfirmation(false);
                 Toast.show("Ride request rejected by driver");
             }
@@ -366,7 +392,38 @@ const RidePlanScreen = () => {
 
     };
 
-    
+    //get-current-ride
+    useEffect(() => {
+        const fetchCurentRide = async () => {
+        try{
+            const accessToken = await AsyncStorage.getItem("accessToken");
+            const response = await axios.get(
+            `${process.env.EXPO_PUBLIC_SERVER_URI}/users/get-current-ride`,
+            {
+                headers: {
+                Authorization: `Bearer ${accessToken}`,
+                },
+            }
+            );
+            if (response.data.data) {
+            setRideDetails(response.data.data);
+            setIsCurrentRide(true);
+            }
+        }
+        catch(error){
+            console.error("Error getting current ride:", error);
+        }
+        }
+        fetchCurentRide();
+    },[]);
+
+    const viewRideDetails = async () => {
+        await loadOrderData();
+        router.push({
+            pathname: "/(routes)/ride-details",
+            params: { orderData: JSON.stringify(orderDataRef.current) },
+        });
+    };
 
     return (
         <SafeAreaView style={styles.container}>
@@ -533,7 +590,14 @@ const RidePlanScreen = () => {
                 visible={showConfirmation}
                 onAnimationComplete={handleAnimationComplete}
             />
-            
+            {isCurrentRide && (
+                <View style={styles.rideBanner}>
+                <Text style={styles.bannerText}>Pickup at {rideDetails.currentLocationName}</Text>
+                <TouchableOpacity style={styles.bannerButton} onPress={viewRideDetails}>
+                    <Text style={styles.bannerButtonText}>Ride Details</Text>
+                </TouchableOpacity>
+            </View>
+            )}
         </SafeAreaView>
     );
 };
@@ -741,6 +805,31 @@ const styles = StyleSheet.create({
         color: 'white',
         fontWeight: '600',
     },
+    rideBanner: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        width: width,
+        padding: 15,
+        backgroundColor: '#333',
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+      },
+      bannerText: {
+        color: '#fff',
+        fontSize: 16,
+      },
+      bannerButton: {
+        backgroundColor: '#34D399',
+        paddingVertical: 5,
+        paddingHorizontal: 10,
+        borderRadius: 20,
+      },
+      bannerButtonText: {
+        color: '#fff',
+        fontSize: 16,
+      },
 });
 
 export default RidePlanScreen;

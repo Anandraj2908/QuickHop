@@ -11,6 +11,7 @@ import {
     getAllRides,
     refreshAccessToken,
     getUserById,
+    getCurrentRide,
 } from "../controllers/user.controller.js";
 
 import { verifyJWT } from "../middlewares/auth.middleware.js";
@@ -26,6 +27,7 @@ router.route("/refresh-access-token").post(verifyJWT,refreshAccessToken);
 router.route("/get-current-user").get(verifyJWT,currentUser);
 router.route("/get-all-rides").get(verifyJWT,getAllRides);
 router.route("/get-user-by-id/:id").get(getUserById);
+router.route("/get-current-ride").get(verifyJWT,getCurrentRide);
 router.route("/hello").get(hello);
 
 export default router;

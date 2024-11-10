@@ -18,6 +18,9 @@ import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import BillModal from '../../../components/BillModal';
 import { getDistance } from 'geolib';
 import { useRouter } from 'expo-router';
+import * as Notifications from "expo-notifications";
+import Toast from '../../../components/Toast';
+import MotorcycleCard from '../../../components/MotorcycleLoader.jsx';
 
 const RideTracking = () => {
   const router = useRouter();
@@ -25,6 +28,8 @@ const RideTracking = () => {
   const { orderData } = useLocalSearchParams();
   const data = JSON.parse(orderData);
   const ws = useRef(null);
+  const notificationListener = useRef(null);
+  const [isRideStarted, setIsRiding] = useState(false);
   const [region, setRegion] = useState({
     latitude: 12.90695,
     longitude:77.49916,
@@ -46,6 +51,35 @@ const RideTracking = () => {
     dropoffLocationName: data.dropoffLocation.name,
     rideCharge: data.rideCharge,
   };
+
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+    }),
+  });
+
+  useEffect(() => {
+      notificationListener.current =
+      Notifications.addNotificationReceivedListener((notification) => {
+          console.log("Notification received: ", notification.request.content.data.orderData);
+          if(notification.request.content.data.orderData === "started"){
+            setIsRiding(true);
+            Toast.show("Ride has started, meanwhile you can play the game");
+          }
+          else if(notification.request.content.data.orderData === "ended"){
+            Toast.show("Thank you for riding with us, ride has been completed");
+            router.push("/(routes)/payments");
+          }
+      });
+
+      return () => {
+      Notifications.removeNotificationSubscription(
+          notificationListener.current
+      );
+      };
+  }, []);
 
   useEffect(() => {
     if(data?.driver?.currentLocation && data?.driver?.marker) {
@@ -69,11 +103,12 @@ const RideTracking = () => {
           (data.driver.marker.longitude +
             data.driver.currentLocation.longitude) /
           2,
-        latitudeDelta: Math.max(latitudeDelta, 0.0922),
-        longitudeDelta: Math.max(longitudeDelta, 0.0421),
+        latitudeDelta: Math.max(latitudeDelta, 0.0126),
+        longitudeDelta: Math.max(longitudeDelta, 0.0126),
       });
     }
   },[]);
+
   const initializeWebSocket = () => {
     ws.current = new WebSocket(`ws://${process.env.EXPO_PUBLIC_HOST_IP}:${process.env.EXPO_PUBLIC_SOCKET_PORT}`);
 
@@ -85,15 +120,20 @@ const RideTracking = () => {
       try{
         const message = JSON.parse(e.data);
         if(message.type === "driverLiveLocationWithId" && message.location){
-          setDriverLocation(message.location);
-          console.log("Driver location msg: ", message.location);
-          setRegion((prevRegion) => ({
-            ...prevRegion,
-            latitude: message.location.latitude,
-            longitude: message.location.longitude,
-          }));
 
-          isDriverNearby(message.location);
+          setDriverLocation(message.location);
+          const distance = getDistance(
+            { latitude: region.latitude, longitude: region.longitude },
+            { latitude: message.location.latitude, longitude: message.location.longitude }
+          );
+
+          if(distance > 5){
+            setRegion((prevRegion) => ({
+              ...prevRegion,
+              latitude: message.location.latitude,
+              longitude: message.location.longitude,
+            }));
+          }
         }
       }
       catch(e){
@@ -139,57 +179,43 @@ const RideTracking = () => {
       }, [])
     ); 
   
-  
 
-
-  const isDriverNearby = (location) => {
-    
-    console.log("Driver location: ", location);
-    const pickupLocation = {"latitude":riderData.pickupLocation.lat, "longitude": riderData.pickupLocation.lng};
-    console.log("Pickup location: ", pickupLocation);
-    if(!location || !pickupLocation) return;
-
-    const distance = getDistance(pickupLocation,location);
-    console.log("Distance: ", distance);
-    
-    if (distance <= 5) {
-      Alert.alert("FRIEND is nearby", "Your friend has arrived at your location");
-
-      router.push({
-        pathname: "/(routes)/ride",
-        params: { orderData: JSON.stringify(orderData) },
-        });
-    }
-  }
-  
 
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+        <Toast/>
         <View style={styles.riderInfo}>
-        <MapView 
-          style={styles.mapContainer}
-          region={region} 
-          onRegionChangeComplete={(region) => setRegion(region)}
-        >
-            {driverLocation && (
-              <Marker coordinate={driverLocation} title="Driver" >
-                <MaterialIcons name="motorcycle" size={24} color="black" />
-              </Marker>
-            )}
-            <Marker coordinate={data.driver.currentLocation} title="Pickup" >
-              <FontAwesome6 name="map-pin" size={24} color="black" />
-            </Marker>
-            {data?.driver?.marker && (
-              <MapViewDirections
-                origin={driverLocation}
-                destination={data.driver.currentLocation}
-                apikey={process.env.EXPO_PUBLIC_GOOGLE_CLOUD_API_KEY}
-                strokeWidth={3}
-                strokeColor="blue"
-              />
-            )}
-        </MapView>
+        {isRideStarted ? (
+          <View style={styles.motorCycleContainer}>
+            <MotorcycleCard />
+          </View>
+        ):(
+          <MapView 
+              style={styles.mapContainer}
+              region={region} 
+              onRegionChangeComplete={(region) => setRegion(region)}
+            >
+                {driverLocation && (
+                  <Marker coordinate={driverLocation} title="Driver" >
+                    <MaterialIcons name="motorcycle" size={24} color="black" />
+                  </Marker>
+                )}
+                <Marker coordinate={data.driver.currentLocation} title="Pickup" >
+                  <FontAwesome6 name="map-pin" size={24} color="black" />
+                </Marker>
+                {data?.driver?.marker && (
+                  <MapViewDirections
+                    origin={driverLocation}
+                    destination={data.driver.currentLocation}
+                    apikey={process.env.EXPO_PUBLIC_GOOGLE_CLOUD_API_KEY}
+                    strokeWidth={3}
+                    strokeColor="blue"
+                  />
+                )}
+            </MapView>
+        )}
+        
         <View style={styles.bottomInfo}>
           <View style={styles.riderHeader}>
             <View style={styles.riderProfile}>
@@ -239,14 +265,17 @@ const RideTracking = () => {
             </TouchableOpacity>
           </View>
 
+        {!isRideStarted && (
           <View style={styles.actionButtons}>
-            <TouchableOpacity style={styles.cancelButton}>
-              <MaterialIcons name="close" size={24} color="white" />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.callButton}>
-              <MaterialIcons name="phone" size={24} color="white" />
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity style={styles.cancelButton}>
+            <MaterialIcons name="close" size={24} color="white" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.callButton}>
+            <MaterialIcons name="phone" size={24} color="white" />
+          </TouchableOpacity>
+        </View>
+        )}
+          
           </View>
         </View>
       </ScrollView>
@@ -268,12 +297,25 @@ const styles = StyleSheet.create({
   scrollContainer: {
     flex: 1,
   },
+  motorCycleContainer:{
+    flex: 1,
+    marginBottom: 20,
+    overflow: 'hidden', 
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 5,
+    position: 'relative',
+  },
   mapContainer: {
     flex: 1,
     height: 250,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: '#E5E7EB', // Light gray border
+    borderColor: '#E5E7EB', 
     borderStyle: 'solid',
     overflow: 'hidden', 
     backgroundColor: '#666', 

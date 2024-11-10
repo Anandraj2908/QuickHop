@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator, Alert, Image } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { useGetDriverData } from '../hooks/useGetRiderData';
 import { router } from 'expo-router';
+import DarkCover from '../assets/images/dark-cover.jpg';
+import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 
 const ProfileScreen = () => {
     const {loading, driver} = useGetDriverData();
@@ -39,40 +41,77 @@ const ProfileScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Profile Section */}
-      <View style={styles.profileContainer}>
-        <Text style={styles.name}>{driver.firstName} {driver.lastName}</Text>
-        <Text style={styles.phone}>📞 {driver.phoneNumber}</Text>
-        <Text style={styles.vehicleDetails}>🚗 {driver.vehicleManufacturer} {driver.vehicleModel}</Text>
-        <Text style={styles.vehicleNumber}>🆔 {driver.vehicleNumber}</Text>
+      {/* Header with Edit Button */}
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.editButton}>
+          <Feather name="edit-2" size={24} color="#fff" />
+        </TouchableOpacity>
       </View>
 
-      {/* Stats Section */}
-      <View style={styles.statsContainer}>
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>{driver.totalRides}</Text>
-          <Text style={styles.statLabel}>Total Rides</Text>
+      {/* Profile Section */}
+      <View style={styles.profileSection}>
+        <View style={styles.profileImageContainer}>
+          <Image
+            source={DarkCover}
+            style={styles.profileImage}
+          />
         </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>${driver.totalEarning}</Text>
-          <Text style={styles.statLabel}>Earnings</Text>
+        <Text style={styles.name}>{driver.firstName} {driver.lastName}</Text>
+      </View>
+
+      <View style={styles.statsGrid}>
+        <View style={styles.statsCard}>
+          <Text style={styles.statsValue}>{driver.totalRides}</Text>
+          <Text style={styles.statsLabel}>Sessions</Text>
         </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>{driver.ratings}</Text>
-          <Text style={styles.statLabel}>Rating</Text>
+        <View style={styles.statsCard}>
+          <Text style={styles.statsValue}>{driver.ratings}</Text>
+          <Text style={styles.statsLabel}>Rating</Text>
+        </View>
+        <View style={styles.statsCard}>
+          <Text style={styles.statsValue}>₹{driver.totalEarning}</Text>
+          <Text style={styles.statsLabel}>Earned</Text>
         </View>
       </View>
-    
-      <View style={styles.vehicleInfoContainer}>
-        <Text style={styles.sectionTitle}>Vehicle Information</Text>
-        <Text style={styles.infoText}>🚗 Manufacturer: {driver?.vehicleManufacturer}</Text>
-        <Text style={styles.infoText}>🚙 Model: {driver?.vehicleModel}</Text>
-        <Text style={styles.infoText}>🆔 License Plate: {driver?.vehicleNumber}</Text>
-        <Text style={styles.infoText}>📜 Driving License: {driver?.drivingLicense}</Text>
-    </View>
+
+      {/* Vehicle Information */}
+      <View style={styles.infoSection}>
+        <Text style={styles.sectionTitle}>Vehicle Details</Text>
+        <View style={styles.infoGrid}>
+          <View style={styles.infoItem}>
+          <MaterialCommunityIcons name="bike" size={20} color="#666" />
+            <View>
+              <Text style={styles.infoLabel}>Vehicle</Text>
+              <Text style={styles.infoValue}>{driver.vehicleManufacturer} {driver.vehicleModel}</Text>
+            </View>
+          </View>
+          <View style={styles.infoItem}>
+            <Feather name="credit-card" size={20} color="#666" />
+            <View>
+              <Text style={styles.infoLabel}>License Plate</Text>
+              <Text style={styles.infoValue}>{driver.vehicleNumber}</Text>
+            </View>
+          </View>
+          <View style={styles.infoItem}>
+            <Feather name="phone" size={20} color="#666" />
+            <View>
+              <Text style={styles.infoLabel}>Contact</Text>
+              <Text style={styles.infoValue}>{driver.phoneNumber}</Text>
+            </View>
+          </View>
+        </View>
+      </View>
+
       {/* Logout Button */}
-      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout} disabled={isLoggingOut}>
-        <Text style={styles.logoutText}>{isLoggingOut ? 'Logging Out...' : 'Logout'}</Text>
+      <TouchableOpacity 
+        style={styles.logoutButton} 
+        onPress={handleLogout} 
+        disabled={isLoggingOut}
+      >
+        <Feather name="log-out" size={20} color="#fff" />
+        <Text style={styles.logoutText}>
+          {isLoggingOut ? 'Logging Out...' : 'Logout'}
+        </Text>
       </TouchableOpacity>
     </SafeAreaView>
   );
@@ -81,82 +120,154 @@ const ProfileScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
-    backgroundColor: '#f5f5f5',
-    marginTop: 30,
+    backgroundColor: '#121212', 
   },
-  profileContainer: {
-    marginBottom: 20,
-    padding: 16,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    shadowColor: '#000',
+  header: {
+    paddingHorizontal: 20,
+    paddingTop: 30,
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+  },
+  editButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 105, 180, 0.3)', // Translucent pink
+    justifyContent: 'center',
+    alignItems: 'center',
+    backdropFilter: 'blur(10px)',
+  },
+  profileSection: {
+    alignItems: 'center',
+    paddingVertical: 5,
+  },
+  profileImageContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 105, 180, 0.3)', // Translucent pink border
+    elevation: 5,
+    shadowColor: '#FF69B4',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    marginBottom: 16,
+    overflow: 'hidden',
   },
   name: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#1f2937',
+    color: '#ffffff',
+    textShadowColor: 'rgba(255, 105, 180, 0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
-  phone: {
-    fontSize: 16,
-    color: '#6b7280',
-    marginVertical: 4,
+  badgeContainer: {
+    flexDirection: 'row',
+    marginBottom: 5,
   },
-  vehicleDetails: {
-    fontSize: 16,
-    color: '#4b5563',
+  badge: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255, 105, 180, 0.2)',
+    borderRadius: 20,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 105, 180, 0.3)',
   },
-  vehicleNumber: {
-    fontSize: 16,
-    color: '#4b5563',
-    marginVertical: 4,
+  badgeText: {
+    color: '#ffffff',
+    marginLeft: 4,
+    fontSize: 14,
   },
-  status: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#10b981',
-    marginTop: 8,
-  },
-  statsContainer: {
+  statsGrid: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginBottom: 20,
+    paddingHorizontal: 20,
+    marginBottom: 10,
+    marginTop: 10,
   },
-  statCard: {
+  statsCard: {
+    backgroundColor: 'rgba(40, 40, 40, 0.7)', 
+    borderRadius: 16,
+    padding: 12,
     alignItems: 'center',
-    padding: 10,
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    width: '30%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1.5,
-    elevation: 3,
+    minWidth: 100,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
-  statValue: {
+  statsValue: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#1f2937',
+    color: '#ffffff',
   },
-  statLabel: {
+  statsLabel: {
     fontSize: 14,
-    color: '#6b7280',
+    color: 'rgba(255, 255, 255, 0.7)',
+  },
+  infoSection: {
+    backgroundColor: 'rgba(40, 40, 40, 0.7)',
+    borderRadius: 20,
+    marginTop: 20,
+    marginHorizontal: 20,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#ffffff',
+    marginBottom: 16,
+  },
+  infoGrid: {
+    gap: 16,
+  },
+  infoItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: 'rgba(30, 30, 30, 0.6)', // Slightly darker than parent
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  infoLabel: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.6)', // Semi-transparent white
+  },
+  infoValue: {
+    fontSize: 14,
+    color: '#ffffff',
+    fontWeight: '500',
   },
   logoutButton: {
+    backgroundColor: 'rgba(255, 105, 180, 0.2)', // Translucent pink
+    marginHorizontal: 20,
+    marginVertical: 20,
     padding: 16,
-    backgroundColor: '#ef4444',
-    borderRadius: 8,
+    borderRadius: 12,
+    flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 105, 180, 0.3)',
   },
   logoutText: {
-    fontSize: 18,
-    color: '#fff',
+    color: '#ffffff',
+    fontSize: 16,
     fontWeight: '600',
+    marginLeft: 8,
+  },
+  // Optional gradient overlay for the main container
+  gradientOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(18, 18, 18, 0.8)', // Dark overlay
   },
   loaderContainer: {
     flex: 1,
@@ -173,25 +284,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#ef4444',
     textAlign: 'center',
-  },
-  vehicleInfoContainer: {
-    backgroundColor: '#f9f9f9',
-    padding: 15,
-    marginVertical: 10,
-    borderRadius: 8,
-    borderColor: '#ddd',
-    borderWidth: 1,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 10,
-    color: '#333',
-  },
-  infoText: {
-    fontSize: 16,
-    color: '#555',
-    marginBottom: 5,
   },
 });
 

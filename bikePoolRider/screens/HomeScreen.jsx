@@ -16,14 +16,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from "expo-notifications";
 import * as GeoLocation from "expo-location";
 import Toast from '../components/Toast';
-import MapView, { Marker, Polyline } from "react-native-maps";
-import MapViewDirections from "react-native-maps-directions";
 import {  LOCATIONS, RATE_CHART } from '../constants/constants';
 import Constants from 'expo-constants';
 import * as Device from 'expo-device';
 import { useRouter } from 'expo-router';
 import RideRequestModal from '../components/RideRequestModal';
 import AcceptingRidesButton from '../components/AcceptRideButton';
+import { LinearGradient } from 'expo-linear-gradient';
 const { width } = Dimensions.get('window');
 
 const HomeScreen = () => {
@@ -229,9 +228,6 @@ const HomeScreen = () => {
       console.log("Error sending push notification:", error);
     }
   };
-
-
-
   //websocket updates
   useEffect(() => {
     ws.onopen = () => {
@@ -296,7 +292,7 @@ const HomeScreen = () => {
         {
           accuracy: GeoLocation.Accuracy.High,
           timeInterval: 10000,
-          distanceInterval: 0.5,
+          distanceInterval: 1,
         },
         async (position) => {
           const { latitude, longitude } = position.coords;
@@ -546,21 +542,26 @@ const HomeScreen = () => {
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView}>
         <Toast/>
-        <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            <Text style={styles.emoji}>👤</Text>
-            <View>
-              {/* Displaying Driver's Full Name */}
-              <Text style={styles.welcomeText}>
-                Welcome back, {driver?.firstName} {driver?.lastName}
-              </Text>
-              {/* Optionally display phone number */}
-              <Text style={styles.subText}>{driver?.phoneNumber}</Text>
+        
+        {/* Header Section */}
+        <LinearGradient
+          colors={['#1F1F1F', '#111111']}
+          style={styles.headerGradient}
+        >
+          <View style={styles.header}>
+            <View style={styles.headerLeft}>
+              <View style={styles.avatarContainer}>
+                <Text style={styles.emoji}>👤</Text>
+              </View>
+              <View>
+                <Text style={styles.welcomeText}>
+                  Welcome back, {driver?.firstName} {driver?.lastName}
+                </Text>
+                <Text style={styles.subText}>{driver?.phoneNumber}</Text>
+              </View>
             </View>
           </View>
-          <Text style={styles.emoji}>⚙️</Text>
-        </View>
-        
+        </LinearGradient>
 
         <RideRequestModal
           isVisible={isModalVisible}
@@ -572,30 +573,45 @@ const HomeScreen = () => {
           onCancel={cancelRideHandler}
         />
 
-        
-
         {/* Stats Section */}
         <View style={styles.statsContainer}>
           <View style={styles.statCard}>
-            <View style={styles.statHeader}>
-              <Text style={styles.emoji}>💰</Text>
-              <Text style={styles.statLabel}>Earnings</Text>
-            </View>
-            <Text style={styles.statValue}>₹{driver?.totalEarning || '0.00'}</Text>
+            <LinearGradient
+              colors={['#2A2A2A', '#1A1A1A']}
+              style={styles.statGradient}
+            >
+              <View style={styles.statHeader}>
+                <Text style={styles.statEmoji}>💰</Text>
+                <Text style={styles.statValue}>₹{driver?.totalEarning || '0.00'}</Text>
+              </View>
+              <Text style={styles.statLabel}>Total Earnings</Text>
+            </LinearGradient>
           </View>
+          
           <View style={styles.statCard}>
-            <View style={styles.statHeader}>
-              <Text style={styles.emoji}>🚗</Text>
-              <Text style={styles.statLabel}>Trips</Text>
-            </View>
-            <Text style={styles.statValue}>{driver?.totalRides || '0'}</Text>
+            <LinearGradient
+              colors={['#2A2A2A', '#1A1A1A']}
+              style={styles.statGradient}
+            >
+              <View style={styles.statHeader}>
+                <Text style={styles.statEmoji}>🚗</Text>
+                <Text style={styles.statValue}>{driver?.totalRides || '0'}</Text>
+              </View>
+              <Text style={styles.statLabel}>Total Trips</Text>
+            </LinearGradient>
           </View>
+          
           <View style={styles.statCard}>
-            <View style={styles.statHeader}>
-              <Text style={styles.emoji}>⭐</Text>
+            <LinearGradient
+              colors={['#2A2A2A', '#1A1A1A']}
+              style={styles.statGradient}
+            >
+              <View style={styles.statHeader}>
+                <Text style={styles.statEmoji}>⭐</Text>
+                <Text style={styles.statValue}>{driver?.ratings || '0'}</Text>
+              </View>
               <Text style={styles.statLabel}>Rating</Text>
-            </View>
-            <Text style={styles.statValue}>{driver?.ratings || '0'}</Text>
+            </LinearGradient>
           </View>
         </View>
 
@@ -606,13 +622,25 @@ const HomeScreen = () => {
         />
 
       </ScrollView>
+      
       {isCurrentRide && (
-        <View style={styles.rideBanner}>
+        <LinearGradient
+          colors={['#222222', '#111111']}
+          style={styles.rideBanner}
+        >
           <Text style={styles.bannerText}>Pickup at {rideDetails.currentLocationName}</Text>
-          <TouchableOpacity style={styles.bannerButton} onPress={viewRideDetails}>
-            <Text style={styles.bannerButtonText}>Ride Details</Text>
+          <TouchableOpacity 
+            style={styles.bannerButton} 
+            onPress={viewRideDetails}
+          >
+            <LinearGradient
+              colors={['#4F46E5', '#4338CA']}
+              style={styles.bannerButtonGradient}
+            >
+              <Text style={styles.bannerButtonText}>View Details</Text>
+            </LinearGradient>
           </TouchableOpacity>
-      </View>
+        </LinearGradient>
       )}
     </SafeAreaView>
   );
@@ -621,118 +649,111 @@ const HomeScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#111111',
     marginTop: 30,
   },
   scrollView: {
     flex: 1,
-    paddingBottom:100
+    paddingBottom: 100,
+  },
+  headerGradient: {
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e5e5',
   },
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 12,
+  },
+  avatarContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 20,
+    padding: 10,
   },
   welcomeText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1f2937',
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 4,
   },
   subText: {
     fontSize: 14,
-    color: '#6b7280',
+    color: '#9CA3AF',
   },
   emoji: {
     fontSize: 24,
   },
-  vehicleInfoContainer: {
-    padding: 16,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1f2937',
-    marginBottom: 12,
-  },
-  infoText: {
-    fontSize: 14,
-    color: '#1f2937',
-    marginBottom: 4,
+  settingsButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 16,
+    padding: 10,
   },
   statsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     padding: 16,
+    paddingVertical: 24,
     gap: 12,
   },
   statCard: {
     flex: 1,
-    backgroundColor: '#fff',
-    padding: 12,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+  },
+  statGradient: {
+    padding: 16,
+    borderRadius: 20,
+    height: 170,
+    justifyContent: 'space-between',
   },
   statHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginBottom: 4,
+    alignItems: 'flex-start',
+  },
+  statEmoji: {
+    fontSize: 28,
+    marginBottom: 8,
   },
   statLabel: {
-    fontSize: 12,
-    color: '#6b7280',
+    fontSize: 14,
+    color: '#9CA3AF',
   },
   statValue: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1f2937',
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
-  
   rideBanner: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     width: width,
-    padding: 15,
-    backgroundColor: '#333',
+    padding: 16,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   bannerText: {
-    color: '#fff',
+    color: '#FFFFFF',
     fontSize: 16,
+    fontWeight: '500',
   },
   bannerButton: {
-    backgroundColor: '#34D399',
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    borderRadius: 20,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  bannerButtonGradient: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
   },
   bannerButtonText: {
-    color: '#fff',
-    fontSize: 16,
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
 

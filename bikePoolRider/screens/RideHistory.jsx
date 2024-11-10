@@ -1,4 +1,3 @@
-// RideHistoryScreen.js
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import React, { useEffect, useState, useCallback } from 'react';
@@ -205,7 +204,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
-    backgroundColor: '#f9fafb',
+    backgroundColor: '#121212',
   },
   centerContainer: {
     flex: 1,
@@ -216,7 +215,7 @@ const styles = StyleSheet.create({
   header: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#111827',
+    color: '#ffffff',
     marginBottom: 16,
     marginTop: 8,
   },
@@ -224,15 +223,14 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   rideCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
+    backgroundColor: 'rgba(40, 40, 40, 0.7)', 
+    borderRadius: 16,
     padding: 16,
     marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -243,16 +241,16 @@ const styles = StyleSheet.create({
   dateText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#111827',
+    color: '#ffffff',
   },
   timeText: {
     fontSize: 14,
-    color: '#6b7280',
+    color: '#ffffff',
     marginTop: 2,
   },
   divider: {
     height: 1,
-    backgroundColor: '#e5e7eb',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     marginVertical: 12,
   },
   locationContainer: {
@@ -266,12 +264,12 @@ const styles = StyleSheet.create({
   locationTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#4b5563',
+    color: 'rgba(255, 255, 255, 0.7)',
     marginLeft: 8,
   },
   locationText: {
     fontSize: 16,
-    color: '#111827',
+    color: '#ffffff',
     paddingLeft: 28,
   },
   rideDetails: {
@@ -285,16 +283,17 @@ const styles = StyleSheet.create({
   },
   detailText: {
     fontSize: 14,
-    color: '#4b5563',
+    color: 'rgba(255, 255, 255, 0.7)', // Lighter color for text
     marginLeft: 4,
   },
   statusBadge: {
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
+    backgroundColor: 'rgba(169, 169, 169, 0.2)', // Translucent pink background
   },
   statusText: {
-    color: '#fff',
+    color: '#ffffff',
     fontSize: 12,
     fontWeight: '600',
     textTransform: 'capitalize',
@@ -306,18 +305,18 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: '#6b7280',
+    color: 'rgba(255, 255, 255, 0.7)',
     marginTop: 12,
   },
   errorText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#111827',
+    color: '#ef4444',
     marginTop: 16,
   },
   errorSubText: {
     fontSize: 14,
-    color: '#6b7280',
+    color: 'rgba(255, 255, 255, 0.7)',
     marginTop: 8,
     textAlign: 'center',
   },

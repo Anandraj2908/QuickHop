@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, TouchableOpacity, Image, Linking, ActivityIndicator } from 'react-native';
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import axios from 'axios';
 import { getDistance } from 'geolib';
 import * as GeoLocation from 'expo-location';
@@ -81,7 +81,8 @@ const RideDetails = () => {
   }, [fetchCurrentRide, fetchUserData]);
 
   // Location tracking effect
-  useEffect(() => {
+  useFocusEffect(
+    useCallback(() => {
     if (!rideInfo?.currentLocationName || !rideInfo?.destinationLocationName) return;
 
     const pickUpLocation = LOCATIONS.find(location => location.name === rideInfo.currentLocationName);
@@ -135,7 +136,8 @@ const RideDetails = () => {
         locationSubscription.remove();
       }
     };
-  }, [rideInfo]);
+  }, [rideInfo])
+  );
 
   const handleBackPress = () => {
     router.back();
@@ -153,9 +155,33 @@ const RideDetails = () => {
     });
   };
 
-  const handleStartRide = () => {
-    setShowStartRide(false);
-    setShowRiding(true);
+  const sendPushNotification = async (title, body, data) => {
+    let message = {};
+    message={
+      to:"ExponentPushToken[ofS4h6DXUTnJL0KETIWKR3]",
+      sound: 'default',
+      title,
+      body,
+      data: { orderData: data },
+    }
+
+    try{
+      await axios.post('https://exp.host/--/api/v2/push/send', message);
+    } catch (err) {
+      console.log("Error sending push notification:", err);
+    }
+  };
+
+  const handleStartRide = async () => {
+    try{
+      await sendPushNotification("Ride Started", "Your ride has started", "started");
+      setShowStartRide(false);
+      setShowRiding(true);
+    } catch (err) {
+      console.log("Error starting ride:", err);
+      alert("Failed to start ride. Please try again.");
+    }
+    
   };
 
   const handleEndRide = async () => {
@@ -174,6 +200,7 @@ const RideDetails = () => {
           },
         }
       );
+      await sendPushNotification("Ride Ended", "Your ride has ended", "ended");
       router.push('/home');
     } catch (err) {
       console.log("Error ending ride:", err);
