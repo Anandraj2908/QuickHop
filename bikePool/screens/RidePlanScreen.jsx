@@ -29,8 +29,6 @@ const RidePlanScreen = () => {
     const ws = useRef(null);
     const notificationListener = useRef(null);
     const [wsConnected, setWsConnected] = useState(false);
-    const [places, setPlaces] = useState([]);
-    const [query, setQuery] = useState("");
     const [marker, setMarker] = useState({
         latitude: LOCATIONS[5].lat,
         longitude: LOCATIONS[5].lng,
@@ -44,13 +42,11 @@ const RidePlanScreen = () => {
     const [selectedVehicle, setSelectedVehicle] = useState(null);
     
     const [driverLists, setDriverLists] = useState([]);
-    const [selectedDriver, setSelectedDriver] = useState(null);
     const [driverLoader, setDriverLoader] = useState(false);
 
     const [pickup, setPickup] = useState(LOCATIONS[2]); // Default: BGS Arc
     const [dropoff, setDropoff] = useState(LOCATIONS[5]); // Default: Ganesha Circle
     const [rideCharge, setRideCharge ] = useState(10);
-    const [selectedRide, setSelectedRide] = useState(null);
     const [showLocations, setShowLocations] = useState(false);
     const [isPickup, setIsPickup] = useState(true);
     const [showRiders, setShowRiders] = useState(false);
@@ -60,7 +56,7 @@ const RidePlanScreen = () => {
     const [region, setRegion] = useState({
         latitude: 12.906954343,
         longitude: 77.499163806,
-        latitudeDelta: 0.02,
+        latitudeDelta: 0.018,
         longitudeDelta: 0.02,
       });
       
@@ -375,6 +371,7 @@ const RidePlanScreen = () => {
     return (
         <SafeAreaView style={styles.container}>
             {/* Back Button */}
+            <Toast/>
             <TouchableOpacity style={styles.backButton}>
                 <MaterialIcons name="arrow-back" size={24} color="#000" />
             </TouchableOpacity>

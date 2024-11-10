@@ -152,7 +152,7 @@ const RideTracking = () => {
     const distance = getDistance(pickupLocation,location);
     console.log("Distance: ", distance);
     
-    if (distance <= 2500) {
+    if (distance <= 5) {
       Alert.alert("FRIEND is nearby", "Your friend has arrived at your location");
 
       router.push({

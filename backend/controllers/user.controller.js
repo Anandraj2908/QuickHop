@@ -249,6 +249,15 @@ const getAllRides = asyncHandler(async (req, res) => {
     }
 });
 
+const getUserById = asyncHandler(async (req, res) => {
+    try{
+        const user = await User.findById(req.params.id).select("-password -refreshToken")
+        return res.status(200).json(new ApiResponse(200, user, "User details"))
+    } catch (error) {
+        throw new ApiError(500, "Something went wrong while fetching user details")
+    }
+});
+
 const hello = asyncHandler(
     async (req, res) => {
         return res.status(200).json(
@@ -266,7 +275,8 @@ export {
     hello,
     refreshAccessToken,
     currentUser,
-    getAllRides
+    getAllRides,
+    getUserById
 };
 
 //signup using phone number

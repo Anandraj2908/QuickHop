@@ -8,21 +8,27 @@ import {
   ScrollView,
   Animated,
   Platform,
+  Dimensions
 } from 'react-native';
 import { useGetDriverData } from '../hooks/useGetRiderData';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from "expo-notifications";
 import * as GeoLocation from "expo-location";
-import Toast  from "react-native-toast-message";
+import Toast from '../components/Toast';
 import MapView, { Marker, Polyline } from "react-native-maps";
 import MapViewDirections from "react-native-maps-directions";
 import {  LOCATIONS, RATE_CHART } from '../constants/constants';
 import Constants from 'expo-constants';
 import * as Device from 'expo-device';
+import { useRouter } from 'expo-router';
+import RideRequestModal from '../components/RideRequestModal';
+import AcceptingRidesButton from '../components/AcceptRideButton';
+const { width } = Dimensions.get('window');
 
 const HomeScreen = () => {
   const notificationListener = useRef(); 
+  const router = useRouter();
   const [isAcceptingRides, setIsAcceptingRides] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [userData, setUserData] = useState(null);
@@ -36,101 +42,19 @@ const HomeScreen = () => {
   const [marker, setMarker] = useState(null);
   const [currentLocation, setCurrentLocation] = useState(null);
   const [lastLocation, setLastLocation] = useState(null);
-  const [recentRides, setRecentRides] = useState([]);
   const ws = new WebSocket(`ws://${process.env.EXPO_PUBLIC_HOST_IP}:${process.env.EXPO_PUBLIC_SOCKET_PORT}`);
   const [region, setRegion] = useState({});
   const [rippleAnimation] = useState(new Animated.Value(0));
   const { loading, driver } = useGetDriverData(); 
   const [cancelTimeout, setCancelTimeout] = useState(null);
-  const [isRideAccepted, setIsRideAccepted] = useState(false);
-
-  Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldShowAlert: true,
-      shouldPlaySound: true,
-      shouldSetBadge: false,
-    }),
-  });
-
-  //notification listener
-  useEffect(() => {
-    notificationListener.current =
-      Notifications.addNotificationReceivedListener((notification) => {
-        const orderData = JSON.parse(
-          notification.request.content.data.orderData
-        );
-        setIsModalVisible(true);
-        const timeout = setTimeout(() => {
-          if(!isRideAccepted)
-          cancelRideHandler();
-        }, 25000);
-        setCancelTimeout(timeout);
-        setCurrentLocation({
-          latitude: orderData.currentLocation.latitude,
-          longitude: orderData.currentLocation.longitude,
-        });
-        setMarker({
-          latitude: orderData.marker.latitude,
-          longitude: orderData.marker.longitude,
-        });
-        setRegion({
-          latitude:
-            (orderData.currentLocation.latitude + orderData.marker.latitude) /
-            2,
-          longitude:
-            (orderData.currentLocation.longitude + orderData.marker.longitude) /
-            2,
-          latitudeDelta:
-            Math.abs(
-              orderData.currentLocation.latitude - orderData.marker.latitude
-            ) * 2,
-          longitudeDelta:
-            Math.abs(
-              orderData.currentLocation.longitude - orderData.marker.longitude
-            ) * 2,
-        });
-        setDistance(orderData.distance);
-        setCurrentLocationName(orderData.currentLocationName);
-        setDestinationLocationName(orderData.destinationLocationName);
-        setUserData(orderData.user);
-        setRideCharge(orderData.rideCharge);
-
-      });
-
-    return () => {
-      Notifications.removeNotificationSubscription(
-        notificationListener.current
-      );
-    };
-  }, []);
-
-  //websocket updates
-  useEffect(() => {
-    ws.onopen = () => {
-      console.log("Connected to WebSocket server");
-      setWsConnected(true);
-    };
-
-    ws.onmessage = (e) => {
-      const message = JSON.parse(e.data);
-      console.log("Received message:", message);
-    };
-
-    ws.onerror = (e) => {
-      console.log("WebSocket error:", e.message);
-    };
-
-    ws.onclose = (e) => {
-      console.log("WebSocket closed:", e.code, e.reason);
-    };
-
-    return () => {
-      ws.close();
-    };
-  }, []);
-
+  const [isRideAcceptTriggered, setIsRideAcceptTriggered] = useState(false);
+  const [isCancellationInProgress, setIsCancellationInProgress] = useState(false);
+  const [isProcessingRide, setIsProcessingRide] = useState(false);
+  const [isCurrentRide, setIsCurrentRide] = useState(false);
+  const [rideDetails, setRideDetails ] = useState(null);
   
   
+  //basic utility functions
   const haversineDistance = (coords1, coords2) => {
     const toRad = (x) => (x * Math.PI) / 180;
   
@@ -148,96 +72,69 @@ const HomeScreen = () => {
     const distance = R * c;
     return distance;
   };
-  
-  //may have some errors from req.data or req.data.dat
-  const sendLocationUpdate = async (location) => {
-    try {
-      const accessToken = await AsyncStorage.getItem("accessToken");
-      const res = await axios.get(`${process.env.EXPO_PUBLIC_SERVER_URI}/riders/get-current-rider`, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
-      if (res.data.data) {
-        if (ws.readyState === WebSocket.OPEN) {
-          const message = JSON.stringify({
-            type: "locationUpdate",
-            data: location,
-            role: "driver",
-            driver: res.data.data._id,
-          });
-          ws.send(message);
-        }
-      }
-    } catch (error) {
-      console.log(error);
-    }
+
+  const findRate = (pickupId, dropId) => {
+    const rateInfo = RATE_CHART.find(
+        (rate) => rate.pickupId === pickupId && rate.dropId === dropId
+    );
+    return rateInfo ? rateInfo.rate : 0;
   };
 
-  //send location updates to the server
+
+
+  //NOTIFICATIONS **
+
+  //notification handler
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+    }),
+  });
+
+  //notification listener
   useEffect(() => {
-    (async () => {
-      let { status } = await GeoLocation.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        Toast.show("Please give us to access your location to use this app!");
-        return;
-      }
-
-      await GeoLocation.watchPositionAsync(
-        {
-          accuracy: GeoLocation.Accuracy.High,
-          timeInterval: 10000,
-          distanceInterval: 1,
-        },
-        async (position) => {
-          const { latitude, longitude } = position.coords;
-          const newLocation = { latitude, longitude };
-          if (
-            !lastLocation ||
-            haversineDistance(lastLocation, newLocation) > 200
-          ) {
-            setCurrentLocation(newLocation);
-            setLastLocation(newLocation);
-            if (ws.readyState === WebSocket.OPEN) {
-              await sendLocationUpdate(newLocation);
-            }
-          }
+    notificationListener.current =
+      Notifications.addNotificationReceivedListener((notification) => {
+        const orderData = JSON.parse(notification.request.content.data.orderData);
+  
+        if (orderData) {
+          setIsRideAcceptTriggered(false);
+          setIsProcessingRide(false);
+          setIsModalVisible(true);
+          const timeout = setTimeout(() => {
+            if (!isRideAcceptTriggered) cancelRideHandler();
+          }, 25000);
+          setCancelTimeout(timeout);
+  
+          setCurrentLocation({
+            latitude: orderData.currentLocation.latitude,
+            longitude: orderData.currentLocation.longitude,
+          });
+          setMarker({
+            latitude: orderData.marker.latitude,
+            longitude: orderData.marker.longitude,
+          });
+          setRegion({
+            latitude: (orderData.currentLocation.latitude + orderData.marker.latitude) / 2,
+            longitude: (orderData.currentLocation.longitude + orderData.marker.longitude) / 2,
+            latitudeDelta: Math.abs(orderData.currentLocation.latitude - orderData.marker.latitude) * 2,
+            longitudeDelta: Math.abs(orderData.currentLocation.longitude - orderData.marker.longitude) * 2,
+          });
+          setDistance(orderData.distance);
+          setCurrentLocationName(orderData.currentLocationName || "");
+          setDestinationLocationName(orderData.destinationLocationName || "");
+          setUserData(orderData.user);
+          setRideCharge(orderData.rideCharge);
+        } else {
+          console.error("Notification data missing required properties.");
         }
-      );
-    })();
-  }, []);
-
-  //location permission
-  useEffect(() => {
-    (async () => {
-      let { status } = await GeoLocation.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        Toast.show("Please give us to access your location to use this app!");
-        return;
-      }
-
-      await GeoLocation.watchPositionAsync(
-        {
-          accuracy: GeoLocation.Accuracy.High,
-          timeInterval: 1000,
-          distanceInterval: 1,
-        },
-        async (position) => {
-          const { latitude, longitude } = position.coords;
-          const newLocation = { latitude, longitude };
-          if (
-            !lastLocation ||
-            haversineDistance(lastLocation, newLocation) > 200
-          ) {
-            setCurrentLocation(newLocation);
-            setLastLocation(newLocation);
-            if (ws.readyState === WebSocket.OPEN) {
-              await sendLocationUpdate(newLocation);
-            }
-          }
-        }
-      );
-    })();
+      });
+  
+    return () => {
+      Notifications.removeNotificationSubscription(notificationListener.current);
+    };
   }, []);
 
   //call registerForPushNotificationsAsync
@@ -303,8 +200,6 @@ const HomeScreen = () => {
     }
   };
 
-  
-
   const sendPushNotification = async ( data) => {
     let message = {};
     if(data.status === "cancelled"){
@@ -335,77 +230,268 @@ const HomeScreen = () => {
     }
   };
 
-  const findRate = (pickupId, dropId) => {
-      const rateInfo = RATE_CHART.find(
-          (rate) => rate.pickupId === pickupId && rate.dropId === dropId
-      );
-      return rateInfo ? rateInfo.rate : 0;
-  };
-  const acceptRideHandler = async () => {
-    
-    const accessToken = await AsyncStorage.getItem("accessToken");
-    const pickup = LOCATIONS.find((location) => location.name === currentLocationName);
-    const dropoff = LOCATIONS.find((location) => location.name === destinationLocationName);
-    setPickupId(pickup.id);
-    setDropoffId(dropoff.id);
 
+
+  //websocket updates
+  useEffect(() => {
+    ws.onopen = () => {
+      console.log("Connected to WebSocket server");
+      setWsConnected(true);
+    };
+
+    ws.onmessage = (e) => {
+      const message = JSON.parse(e.data);
+      console.log("Received message:", message);
+    };
+
+    ws.onerror = (e) => {
+      console.log("WebSocket error:", e.message);
+    };
+
+    ws.onclose = (e) => {
+      console.log("WebSocket closed:", e.code, e.reason);
+    };
+
+    return () => {
+      ws.close();
+    };
+  }, []);
+
+
+  //LOCATION UPDATES **
+  const sendLocationUpdate = async (location) => {
+    try {
+      const accessToken = await AsyncStorage.getItem("accessToken");
+      const res = await axios.get(`${process.env.EXPO_PUBLIC_SERVER_URI}/riders/get-current-rider`, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+      if (res.data.data) {
+        if (ws.readyState === WebSocket.OPEN) {
+          const message = JSON.stringify({
+            type: "locationUpdate",
+            data: location,
+            role: "driver",
+            driver: res.data.data._id,
+          });
+          ws.send(message);
+        }
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  //send location updates to the server
+  useEffect(() => {
+    (async () => {
+      let { status } = await GeoLocation.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        Toast.show("Please give us to access your location to use this app!");
+        return;
+      }
+
+      await GeoLocation.watchPositionAsync(
+        {
+          accuracy: GeoLocation.Accuracy.High,
+          timeInterval: 10000,
+          distanceInterval: 0.5,
+        },
+        async (position) => {
+          const { latitude, longitude } = position.coords;
+          const newLocation = { latitude, longitude };
+          if (
+            !lastLocation ||
+            haversineDistance(lastLocation, newLocation) > 200
+          ) {
+            setCurrentLocation(newLocation);
+            setLastLocation(newLocation);
+            if (ws.readyState === WebSocket.OPEN) {
+              await sendLocationUpdate(newLocation);
+            }
+          }
+        }
+      );
+    })();
+  }, []);
+
+  //location permission and sending location updates
+  useEffect(() => {
+    (async () => {
+      let { status } = await GeoLocation.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        Toast.show("Please give us to access your location to use this app!");
+        return;
+      }
+
+      await GeoLocation.watchPositionAsync(
+        {
+          accuracy: GeoLocation.Accuracy.High,
+          timeInterval: 10000,
+          distanceInterval: 1,
+        },
+        async (position) => {
+          const { latitude, longitude } = position.coords;
+          const newLocation = { latitude, longitude };
+          if (
+            !lastLocation ||
+            haversineDistance(lastLocation, newLocation) > 200
+          ) {
+            setCurrentLocation(newLocation);
+            setLastLocation(newLocation);
+            if (ws.readyState === WebSocket.OPEN) {
+              await sendLocationUpdate(newLocation);
+            }
+          }
+        }
+      );
+    })();
+  }, []);
+
+
+  //ride details banner functionalities **
+
+  const viewRideDetails = () => {
+    router.push({
+      pathname: "/(routes)/ride-details",
+    });
+  };
+
+  //get-current-ride
+  useEffect(() => {
+    const fetchCurentRide = async () => {
+      try{
+        const accessToken = await AsyncStorage.getItem("accessToken");
+        const response = await axios.get(
+          `${process.env.EXPO_PUBLIC_SERVER_URI}/riders/get-current-ride`,
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          }
+        );
+        if (response.data.data) {
+          setRideDetails(response.data.data);
+          setIsCurrentRide(true);
+        }
+      }
+      catch(error){
+        console.error("Error getting current ride:", error);
+      }
+    }
+    fetchCurentRide();
+  },[]);
+  
+  //Accept/Reject Ride Modal functionalities **
+  useEffect(() => {
+    let timeoutId;
+  
+    const handleAutoReject = async () => {
+      if (!isRideAcceptTriggered && isModalVisible && !isProcessingRide) {
+        setIsProcessingRide(true);
+        try {
+          await cancelRideHandler();
+        } finally {
+          setIsProcessingRide(false);
+        }
+      }
+    };
+  
+    if (isModalVisible && !isRideAcceptTriggered && !isProcessingRide) {
+      timeoutId = setTimeout(handleAutoReject, 10000);
+    }
+  
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [isModalVisible, isRideAcceptTriggered, isProcessingRide]);
+
+  const acceptRideHandler = async () => {
+    if (isProcessingRide || isRideAcceptTriggered) return;
     
-    const charge = findRate(pickup.id, dropoff.id);
-    
-    const reqData = {
+    try {
+      setIsProcessingRide(true);
+      setIsRideAcceptTriggered(true);
+      setIsModalVisible(false);
+      
+      const accessToken = await AsyncStorage.getItem("accessToken");
+      const pickup = LOCATIONS.find((location) => location.name === currentLocationName);
+      const dropoff = LOCATIONS.find((location) => location.name === destinationLocationName);
+      setPickupId(pickup.id);
+      setDropoffId(dropoff.id);
+      
+      const charge = findRate(pickup.id, dropoff.id);
+      
+      const reqData = {
         userId: userData?._id,
         charge: charge.toFixed(2),
         status: "Processing",
         currentLocationName,
         destinationLocationName,
         distance,
-    }
-    try{
-      await axios.post(
-            `${process.env.EXPO_PUBLIC_SERVER_URI}/riders/create-new-ride`,reqData,
-            {
-                headers: {
-                    Authorization: `Bearer ${accessToken}`,
-                },
-            }
-        );
-      
-      const data = {
-          ...driver,
-          currentLocation,
-          marker,
-          distance,
-          status: "accepted",
       };
-
+  
+      await axios.post(
+        `${process.env.EXPO_PUBLIC_SERVER_URI}/riders/create-new-ride`,
+        reqData,
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
+  
+      const data = {
+        ...driver,
+        currentLocation,
+        marker,
+        distance,
+        status: "accepted",
+      };
+  
+      await sendPushNotification(data);
       
-      await sendPushNotification(data);  
-      setIsModalVisible(false);   
-
+      router.push({
+        pathname: "/(routes)/ride-details",
+      });
+      
       console.log("Ride request accepted!");
     } catch (error) {
-        console.error("Error accepting ride:", error);
+      console.error("Error accepting ride:", error);
+      setIsRideAcceptTriggered(false);
+      setIsModalVisible(true);
+    } finally {
+      setIsProcessingRide(false);
     }
-};
- 
-const cancelRideHandler = async () => {
-  setIsModalVisible(false);
-  await sendPushNotification({ status: "cancelled" });
-  console.log("Ride request cancelled!");
-};
-  
-  const startRippleAnimation = () => {
-    rippleAnimation.setValue(0);
-    Animated.sequence([
-      Animated.timing(rippleAnimation, {
-        toValue: 1,
-        duration: 1000,
-        useNativeDriver: true,
-      })
-    ]).start();
   };
 
-  //fetching status from async storage
+  const cancelRideHandler = async () => {
+    if (isProcessingRide || !isModalVisible || isRideAcceptTriggered) return;
+    
+    try {
+      setIsProcessingRide(true);
+      setIsModalVisible(false);
+      setIsRideAcceptTriggered(true);
+      await sendPushNotification({ status: "cancelled" });
+    } catch (error) {
+      console.error("Error cancelling ride:", error);
+      setIsRideAcceptTriggered(false);
+      setIsModalVisible(true);
+    } finally {
+      setIsProcessingRide(false);
+    }
+  };
+
+
+
+
+
+  //ON/OFF button functionalities **
+
+  //fetching (active/inactive) status from async storage
   useEffect(() => {
     const fetchStatus = async () => {
       const status = await AsyncStorage.getItem("status");
@@ -441,25 +527,25 @@ const cancelRideHandler = async () => {
     }
   };
 
+  const startRippleAnimation = () => {
+    rippleAnimation.setValue(0);
+    Animated.sequence([
+      Animated.timing(rippleAnimation, {
+        toValue: 1,
+        duration: 1000,
+        useNativeDriver: true,
+      })
+    ]).start();
+  };
+
+
   
-
-
-  const rippleScale = rippleAnimation.interpolate({
-    inputRange: [0, 1],
-    outputRange: [1, 2]
-  });
-
-  const rippleOpacity = rippleAnimation.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0.4, 0]
-  });
-
 
   
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView}>
-        {/* Header */}
+        <Toast/>
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <Text style={styles.emoji}>👤</Text>
@@ -474,43 +560,17 @@ const cancelRideHandler = async () => {
           </View>
           <Text style={styles.emoji}>⚙️</Text>
         </View>
+        
 
-
-        {isModalVisible && 
-          (<View style={styles.activityContainer}>
-            <View style={styles.activityCard}>
-              <View style={styles.activityHeader}>
-                <Text style={styles.activityTitle}>Ride Request</Text>
-                <Text style={styles.activityTime}>Just now</Text>
-              </View>
-              <View style={styles.activityItem}>
-                <Text style={styles.activityLabel}>From</Text>
-                <Text style={styles.activityAmount}>{currentLocationName}</Text>
-              </View>
-              <View style={styles.activityItem}>
-                <Text style={styles.activityLabel}>To</Text>
-                <Text style={styles.activityAmount}>{destinationLocationName}</Text>
-              </View>
-              <View style={styles.activityItem}>
-                <Text style={styles.activityLabel}>Distance</Text>
-                <Text style={styles.activityAmount}>{distance} km</Text>
-              </View>
-              <View style={styles.activityItem}>
-                <Text style={styles.activityLabel}>Amount</Text>
-                <Text style={styles.activityAmount}>₹ {rideCharge} </Text>
-              </View>
-              <View style={styles.buttonsContainer}>
-                <TouchableOpacity style={styles.cancelButton} onPress={() => cancelRideHandler()}>
-                  <Text style={styles.buttonsText}>Cancel Ride</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.acceptButton} onPress={() => acceptRideHandler()}>
-                  <Text style={styles.buttonsText}>Accept Ride</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-          )
-        }
+        <RideRequestModal
+          isVisible={isModalVisible}
+          currentLocationName={currentLocationName}
+          destinationLocationName={destinationLocationName}
+          distance={distance}
+          rideCharge={rideCharge}
+          onAccept={acceptRideHandler}
+          onCancel={cancelRideHandler}
+        />
 
         
 
@@ -539,41 +599,21 @@ const cancelRideHandler = async () => {
           </View>
         </View>
 
-        {/* Main Button Section */}
-        <View style={styles.buttonContainer}>
-          <View style={styles.buttonWrapper}>
-            <Animated.View
-              style={[styles.ripple, {
-                transform: [{ scale: rippleScale }],
-                opacity: rippleOpacity,
-                backgroundColor: isAcceptingRides ? '#34D399' : '#EF4444',
-              }]}
-            />
-            <TouchableOpacity
-              style={[styles.button, isAcceptingRides ? styles.buttonOn : styles.buttonOff]}
-              onPress={toggleAcceptingRides}
-            >
-              <Text style={styles.buttonMainText}>
-                {isAcceptingRides ? 'ON' : 'OFF'}
-              </Text>
-              <Text style={styles.buttonSubText}>
-                {isAcceptingRides ? 'Accepting Rides' : 'Not Accepting'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          <View
-            style={[styles.statusCard, isAcceptingRides ? styles.statusOn : styles.statusOff]}
-          >
-            <Text style={styles.statusText}>
-              {isAcceptingRides
-                ? 'You are now available to accept new rides'
-                : 'You are currently offline'}
-            </Text>
-          </View>
-        </View>
+        <AcceptingRidesButton
+          isAcceptingRides={isAcceptingRides}
+          toggleAcceptingRides={toggleAcceptingRides}
+          rippleAnimation={rippleAnimation}
+        />
 
       </ScrollView>
+      {isCurrentRide && (
+        <View style={styles.rideBanner}>
+          <Text style={styles.bannerText}>Pickup at {rideDetails.currentLocationName}</Text>
+          <TouchableOpacity style={styles.bannerButton} onPress={viewRideDetails}>
+            <Text style={styles.bannerButtonText}>Ride Details</Text>
+          </TouchableOpacity>
+      </View>
+      )}
     </SafeAreaView>
   );
 };
@@ -586,6 +626,7 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+    paddingBottom:100
   },
   header: {
     flexDirection: 'row',
@@ -667,132 +708,31 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#1f2937',
   },
-  buttonContainer: {
-    alignItems: 'center',
-    padding: 16,
-  },
-  buttonWrapper: {
-    position: 'relative',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  ripple: {
+  
+  rideBanner: {
     position: 'absolute',
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-  },
-  button: {
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    justifyContent: 'center',
+    bottom: 0,
+    left: 0,
+    width: width,
+    padding: 15,
+    backgroundColor: '#333',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 4,
   },
-  buttonOn: {
-    backgroundColor: '#34D399',
-  },
-  buttonOff: {
-    backgroundColor: '#EF4444',
-  },
-  buttonMainText: {
-    fontSize: 24,
-    fontWeight: '600',
+  bannerText: {
     color: '#fff',
-  },
-  buttonSubText: {
-    fontSize: 14,
-    color: '#fff',
-  },
-  statusCard: {
-    padding: 12,
-    borderRadius: 12,
-    width: '100%',
-  },
-  statusOn: {
-    backgroundColor: '#E9FCE8',
-  },
-  statusOff: {
-    backgroundColor: '#FCE9E9',
-  },
-  statusText: {
     fontSize: 16,
-    color: '#1f2937',
-    textAlign: 'center',
   },
-  activityContainer: {
-    padding: 16,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    margin: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 3,
+  bannerButton: {
+    backgroundColor: '#34D399',
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 20,
   },
-  activityCard: {
-    paddingVertical: 12,
-  },
-  activityHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e5e5',
-    paddingBottom: 10,
-    marginBottom: 10,
-  },
-  activityTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1f2937',
-  },
-  activityTime: {
-    fontSize: 12,
-    color: '#6b7280',
-  },
-  activityItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-  },
-  activityLabel: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: '#374151',
-  },
-  activityAmount: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#1f2937',
-  },
-  buttonsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: 16,
-  },
-  acceptButton: {
-    backgroundColor: '#4CAF50',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-  },
-  cancelButton: {
-    backgroundColor: '#FF6347',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-  },
-  buttonsText: {
+  bannerButtonText: {
     color: '#fff',
-    fontSize: 14,
-    fontWeight: 'bold',
+    fontSize: 16,
   },
 });
 

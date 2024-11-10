@@ -6,7 +6,6 @@ import { Rider } from "../models/rider.model.js";
 export const verifyJWT = asyncHandler(async (req, _, next) => {
     try {
         const authHeader = req.headers.authorization;
-        console.log("authHeader", req.headers);
         if (!authHeader) {
             throw new ApiError(401, "Unauthorized request: No authorization header found");
         }

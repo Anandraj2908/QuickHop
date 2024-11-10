@@ -14,6 +14,7 @@ import {
     getAllRides,
     refreshAccessToken,
     createNewRide,
+    getCurrentRide,
 } from "../controllers/rider.controller.js";
 
 import { verifyJWT } from "../middlewares/riderAuth.middleware.js";
@@ -31,6 +32,7 @@ router.route("/get-riders-by-id").post(getRidersByID);
 router.route("/create-new-ride").post(verifyJWT,createNewRide);
 router.route("/update-ride-status").patch(verifyJWT,updateRideStatus);
 router.route("/get-all-rides").get(verifyJWT,getAllRides);
+router.route("/get-current-ride").get(verifyJWT,getCurrentRide);
 router.route("/refresh-access-token").get(verifyJWT,refreshAccessToken);
 router.route("/hello").get(hello);
 

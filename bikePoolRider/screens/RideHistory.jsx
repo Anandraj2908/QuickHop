@@ -16,7 +16,6 @@ import { MaterialIcons, FontAwesome } from '@expo/vector-icons';
 
 const { width } = Dimensions.get('window');
 
-// Separate component for location details
 const LocationDetail = ({ title, location }) => (
   <View style={styles.locationContainer}>
     <View style={styles.locationHeader}>
