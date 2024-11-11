@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Pressable, Animated } from 'react-native';
 import { Tabs } from 'expo-router';
-import { FontAwesome5, MaterialIcons,MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
+import { FontAwesome5, MaterialIcons, MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 
 export default function TabLayout() {
   const tabAnimations = {
@@ -23,46 +23,32 @@ export default function TabLayout() {
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarStyle: {
-          height: 70,
+          height: 60,
           borderTopWidth: 0,
-          elevation: 24,
+          elevation: 0,
+          backgroundColor: 'rgba(40, 40, 40, 0.7)',
+          borderRadius: 20,
+          margin: 10,
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
           shadowColor: '#000',
-          shadowOffset: { width: 0, height: -3 },
-          shadowOpacity: 0.1,
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.3,
           shadowRadius: 8,
-          backgroundColor: '#FFFFFF',
         },
-        tabBarShowLabel: true,
-        tabBarActiveTintColor: '#6C63FF',
-        tabBarInactiveTintColor: '#8F8F8F',
-        tabBarLabel: ({ focused }) => {
-          const labels = {
-            home: 'Home',
-            'rides/index': 'Rides',
-            'profile/index': 'Profile',
-          };
-          return (
-            <Animated.Text
-              style={{
-                fontSize: 12,
-                color: focused ? '#6C63FF' : '#8F8F8F',
-                marginTop: -5,
-                opacity: focused ? 1 : 0.8,
-              }}
-            >
-              {labels[route.name]}
-            </Animated.Text>
-          );
-        },
+        tabBarShowLabel: false,
+        tabBarActiveTintColor: '#FFFFFF',
+        tabBarInactiveTintColor: '#666666',
         tabBarIcon: ({ focused }) => {
           const tabName = route.name.split('/')[0];
           
-          // Animate the tab when focus changes
           React.useEffect(() => {
             animateTab(tabName, focused);
           }, [focused]);
 
-          const iconSize = 24;
+          const iconSize = 22;
           let icon;
 
           if (route.name === 'home') {
@@ -70,7 +56,7 @@ export default function TabLayout() {
               <Ionicons
                 name={focused ? 'home' : 'home-outline'}
                 size={iconSize}
-                color={focused ? '#6C63FF' : '#8F8F8F'}
+                color={focused ? '#FFFFFF' : '#666666'}
               />
             );
           } else if (route.name === 'rides/index') {
@@ -78,7 +64,7 @@ export default function TabLayout() {
               <MaterialCommunityIcons
                 name={focused ? 'motorbike' : 'motorbike'}
                 size={iconSize}
-                color={focused ? '#FF6B6B' : '#8F8F8F'}
+                color={focused ? '#FFFFFF' : '#666666'}
               />
             );
           } else if (route.name === 'profile/index') {
@@ -86,7 +72,7 @@ export default function TabLayout() {
               <FontAwesome5
                 name={focused ? 'user-alt' : 'user'}
                 size={iconSize - 2}
-                color={focused ? '#4ECDC4' : '#8F8F8F'}
+                color={focused ? '#FFFFFF' : '#666666'}
               />
             );
           }
@@ -95,9 +81,9 @@ export default function TabLayout() {
             <Animated.View
               style={{
                 transform: [{ scale: tabAnimations[tabName] }],
-                backgroundColor: focused ? '#F0EFFE' : 'transparent',
+                backgroundColor: focused ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
                 borderRadius: 12,
-                padding: 8,
+                padding: 10,
               }}
             >
               {icon}

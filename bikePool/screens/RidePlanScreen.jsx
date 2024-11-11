@@ -11,11 +11,12 @@ import {
     Modal,
     Platform,
     Dimensions,
+    ImageBackground,
 } from 'react-native';
-import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { MaterialIcons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 import RideConfirmationModal from '../components/RideConfirmationModal';
 import Toast from '../components/Toast';
-
+import { LinearGradient } from 'expo-linear-gradient';
 import * as Notifications from "expo-notifications";
 import { useRouter } from 'expo-router';
 import { LOCATIONS, RATE_CHART } from '../constants/constants.js';
@@ -24,6 +25,7 @@ import * as Device from 'expo-device';
 import axios from 'axios';
 import useGetUserData from '../hooks/useGetUserData.js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Wallpaper from '../assets/images/ridePlanWallpaper.jpg'
 const { width } = Dimensions.get('window');
 
 const RidePlanScreen = () => {
@@ -426,7 +428,9 @@ const RidePlanScreen = () => {
     };
 
     return (
-        <SafeAreaView style={styles.container}>
+        <ImageBackground source={Wallpaper} 
+        style={styles.backgroundImage}>
+        <SafeAreaView style={styles.container}  >
             {/* Back Button */}
             <Toast/>
             <TouchableOpacity style={styles.backButton}>
@@ -466,24 +470,24 @@ const RidePlanScreen = () => {
                 </TouchableOpacity>
             </View>
 
-
-            <View style={styles.rideOptionsContainer}>
-                <TouchableOpacity
-                    style={[
-                        styles.findRideButton, 
-                        !rideCharge && styles.disabledButton // Apply red styling if unserviceable
-                    ]}
-                    onPress={requestNearbyDrivers}
-                    disabled={!rideCharge} // Disable button if rideCharge is null or 0
-                >
-                    {rideCharge ? (
-                        <Text style={styles.findRideText}>Find Ride at Rs.{rideCharge}</Text>
-                    ) : (
-                        <Text style={styles.unserviceableText}>Route Unserviceable</Text>
-                    )}
-                </TouchableOpacity>
-            </View>
-
+            {!isCurrentRide && (
+                <View style={styles.rideOptionsContainer}>
+                    <TouchableOpacity
+                        style={[
+                            styles.findRideButton, 
+                            !rideCharge && styles.disabledButton 
+                        ]}
+                        onPress={requestNearbyDrivers}
+                        disabled={!rideCharge} 
+                    >
+                        {rideCharge ? (
+                            <Text style={styles.findRideText}>Find Ride at Rs.{rideCharge}</Text>
+                        ) : (
+                            <Text style={styles.unserviceableText}>Route Unserviceable</Text>
+                        )}
+                    </TouchableOpacity>
+                </View>
+            )}
             {/* Location Selection Modal */}
             <Modal
                 visible={showLocations}
@@ -591,245 +595,270 @@ const RidePlanScreen = () => {
                 onAnimationComplete={handleAnimationComplete}
             />
             {isCurrentRide && (
-                <View style={styles.rideBanner}>
+                <LinearGradient
+                colors={['#222222', '#111111']}
+                style={styles.rideBanner}
+              >
                 <Text style={styles.bannerText}>Pickup at {rideDetails.currentLocationName}</Text>
-                <TouchableOpacity style={styles.bannerButton} onPress={viewRideDetails}>
-                    <Text style={styles.bannerButtonText}>Ride Details</Text>
+                <TouchableOpacity 
+                  style={styles.bannerButton} 
+                  onPress={viewRideDetails}
+                >
+                  <LinearGradient
+                    colors={['#4F46E5', '#4338CA']}
+                    style={styles.bannerButtonGradient}
+                  >
+                    <Text style={styles.bannerButtonText}>View Details</Text>
+                  </LinearGradient>
                 </TouchableOpacity>
-            </View>
+              </LinearGradient>
             )}
         </SafeAreaView>
+        </ImageBackground>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
+      flex: 1,
+    },
+    backgroundImage: {
         flex: 1,
-        backgroundColor: '#FAFAFA',
+        resizeMode: 'cover',
+        justifyContent: 'center', 
     },
     backButton: {
-        padding: 15,
+      padding: 15,
     },
     locationContainer: {
-        backgroundColor: 'white',
-        margin: 10,
-        borderRadius: 15,
-        padding: 10,
-        shadowColor: '#000',
-        shadowOffset: {
-            width: 0,
-            height: 2,
-        },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
+      backgroundColor: 'rgba(0, 0, 0,0.5)',
+      margin: 10,
+      borderRadius: 15,
+      padding: 10,
+      shadowColor: '#000',
+      shadowOffset: {
+        width: 0,
+        height: 2,
+      },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3,
     },
     locationItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 2,
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 2,
     },
     locationTextContainer: {
-        flex: 1,
-        marginLeft: 15,
+      flex: 1,
+      marginLeft: 15,
     },
     locationLabel: {
-        fontSize: 12,
-        color: '#999',
+      fontSize: 12,
+      color: '#ccc',
     },
     locationText: {
-        fontSize: 16,
-        color: '#333',
-        marginTop: 2,
+      fontSize: 16,
+      color: '#fff',
+      marginTop: 2,
     },
     divider: {
-        height: 1,
-        backgroundColor: '#EEE',
-        marginVertical: 5,
+      height: 1,
+      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+      marginVertical: 5,
     },
     mapContainer: {
-        flex: 1,
-        margin: 15,
-        borderRadius: 15,
-        overflow: 'hidden',
-        backgroundColor: '#E1E1E1',
+      flex: 1,
+      margin: 15,
+      borderRadius: 15,
+      overflow: 'hidden',
+      backgroundColor: '#121212',
     },
     mapPlaceholder: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
     },
     mapPlaceholderText: {
-        marginTop: 5,
-        color: '#666',
+      marginTop: 5,
+      color: '#ccc',
     },
     rideOptionsContainer: {
-        padding: 20,
-        alignItems: 'center',
+      padding: 20,
+      alignItems: 'center',
     },
     findRideButton: {
-        backgroundColor: '#2196F3',
-        padding: 15,
-        borderRadius: 8,
-        alignItems: 'center',
-        width: '80%',
+      backgroundColor: '#2196F3',
+      padding: 15,
+      borderRadius: 8,
+      alignItems: 'center',
+      width: '80%',
     },
     disabledButton: {
-        backgroundColor: 'red',
+      backgroundColor: '#C62828',
     },
     findRideText: {
-        color: '#fff',
-        fontSize: 16,
-        fontWeight: '600',
+      color: '#fff',
+      fontSize: 16,
+      fontWeight: '600',
     },
     unserviceableText: {
-        color: '#fff',
-        fontSize: 16,
-        fontWeight: '600',
+      color: '#fff',
+      fontSize: 16,
+      fontWeight: '600',
     },
     modalContainer: {
-        flex: 1,
-        justifyContent: 'flex-end',
-        backgroundColor: 'rgba(0,0,0,0.5)',
+      flex: 1,
+      justifyContent: 'flex-end',
+      backgroundColor: 'rgba(0,0,0,0.5)',
     },
     modalContent: {
-        backgroundColor: 'white',
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
-        padding: 20,
-        maxHeight: '80%',
+      backgroundColor: '#1E1E1E',
+      borderTopLeftRadius: 20,
+      borderTopRightRadius: 20,
+      padding: 20,
+      maxHeight: '80%',
     },
     modalHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 20,
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 20,
     },
     modalTitle: {
-        fontSize: 18,
-        fontWeight: '600',
+      fontSize: 18,
+      fontWeight: '600',
+      color: '#fff',
     },
     closeButton: {
-        padding: 5,
+      padding: 5,
     },
     locationOption: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        padding: 15,
-        borderBottomWidth: 1,
-        borderBottomColor: '#EEE',
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: 15,
+      borderBottomWidth: 1,
+      borderBottomColor: 'rgba(255, 255, 255, 0.1)',
     },
     locationOptionText: {
-        marginLeft: 15,
+      marginLeft: 15,
     },
     locationOptionName: {
-        fontSize: 16,
-        fontWeight: '500',
+      fontSize: 16,
+      fontWeight: '500',
+      color: '#fff',
     },
     locationOptionAddress: {
-        fontSize: 14,
-        color: '#666',
-        marginTop: 2,
+      fontSize: 14,
+      color: '#ccc',
+      marginTop: 2,
     },
     riderOption: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        padding: 15,
-        borderBottomWidth: 1,
-        borderBottomColor: '#EEE',
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: 15,
+      borderBottomWidth: 1,
+      borderBottomColor: 'rgba(255, 255, 255, 0.1)',
     },
     selectedRiderOption: {
-        backgroundColor: '#e0e8e8',
-        borderRadius: 10,
+      backgroundColor: '#333',
+      borderRadius: 10,
     },
     riderImage: {
-        width: 50,
-        height: 50,
-        borderRadius:        25,
-        marginRight: 15,
+      width: 50,
+      height: 50,
+      borderRadius: 25,
+      marginRight: 15,
     },
     riderInfo: {
-        flex: 1,
+      flex: 1,
     },
     riderName: {
-        fontSize: 16,
-        fontWeight: '600',
+      fontSize: 16,
+      fontWeight: '600',
+      color: '#fff',
     },
     vehicleNumber: {
-        fontSize: 14,
-        color: '#666',
+      fontSize: 14,
+      color: '#ccc',
     },
     riderDetails: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginTop: 5,
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginTop: 5,
     },
     ratingContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
+      flexDirection: 'row',
+      alignItems: 'center',
     },
     ratingText: {
-        marginLeft: 5,
-        fontSize: 14,
-        color: '#666',
+      marginLeft: 5,
+      fontSize: 14,
+      color: '#ccc',
     },
     distanceText: {
-        fontSize: 14,
-        color: '#666',
+      fontSize: 14,
+      color: '#ccc',
     },
     confirmButton: {
-        backgroundColor: '#e0e0e0',
-        padding: 15,
-        borderRadius: 10,
-        marginTop: 20,
-        alignItems: 'center',
+      backgroundColor: '#333',
+      padding: 15,
+      borderRadius: 10,
+      marginTop: 20,
+      alignItems: 'center',
     },
     confirmButtonText: {
-        color: 'black',
-        fontWeight: '600',
-        fontSize: 16,
+      color: '#fff',
+      fontWeight: '600',
+      fontSize: 16,
     },
     confirmButtonTouchable: {
-        width: '100%',
-        alignItems: 'center',
+      width: '100%',
+      alignItems: 'center',
     },
     trackButton: {
-        backgroundColor: '#4CAF50',
-        padding: 15,
-        borderRadius: 10,
-        marginTop: 10,
-        alignItems: 'center',
+      backgroundColor: '#4CAF50',
+      padding: 15,
+      borderRadius: 10,
+      marginTop: 10,
+      alignItems: 'center',
     },
     trackButtonText: {
-        color: 'white',
-        fontWeight: '600',
+      color: '#fff',
+      fontWeight: '600',
     },
     rideBanner: {
         position: 'absolute',
         bottom: 0,
         left: 0,
         width: width,
-        padding: 15,
-        backgroundColor: '#333',
+        paddingHorizontal: 16,
+        paddingVertical: 8,
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
+        marginBottom: 90,
+        borderRadius: 30,
       },
       bannerText: {
-        color: '#fff',
+        color: '#FFFFFF',
         fontSize: 16,
+        fontWeight: '500',
       },
       bannerButton: {
-        backgroundColor: '#34D399',
-        paddingVertical: 5,
-        paddingHorizontal: 10,
-        borderRadius: 20,
+        borderRadius: 30,
+        overflow: 'hidden',
+      },
+      bannerButtonGradient: {
+        paddingVertical: 8,
+        paddingHorizontal: 16,
       },
       bannerButtonText: {
-        color: '#fff',
-        fontSize: 16,
+        color: '#FFFFFF',
+        fontSize: 14,
+        fontWeight: '600',
       },
-});
+  });
 
 export default RidePlanScreen;

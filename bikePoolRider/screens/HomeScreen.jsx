@@ -650,7 +650,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#111111',
-    marginTop: 30,
+    paddingTop: 30
   },
   scrollView: {
     flex: 1,
@@ -736,6 +736,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 90
   },
   bannerText: {
     color: '#FFFFFF',

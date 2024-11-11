@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import MapView, { Marker } from "react-native-maps";
 import MapViewDirections from "react-native-maps-directions";
-import { MaterialIcons, FontAwesome6 } from '@expo/vector-icons';
+import { MaterialIcons, FontAwesome6, Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import BillModal from '../../../components/BillModal';
 import { getDistance } from 'geolib';
@@ -21,6 +21,7 @@ import { useRouter } from 'expo-router';
 import * as Notifications from "expo-notifications";
 import Toast from '../../../components/Toast';
 import MotorcycleCard from '../../../components/MotorcycleLoader.jsx';
+
 
 const RideTracking = () => {
   const router = useRouter();
@@ -33,8 +34,8 @@ const RideTracking = () => {
   const [region, setRegion] = useState({
     latitude: 12.90695,
     longitude:77.49916,
-    latitudeDelta: 0.0126,
-    longitudeDelta: 0.0126,
+    latitudeDelta: 0.009,
+    longitudeDelta: 0.009,
   });
 
   const [driverLocation, setDriverLocation] = useState(data?.driver?.currentLocation);
@@ -52,62 +53,16 @@ const RideTracking = () => {
     rideCharge: data.rideCharge,
   };
 
+  const onBackPress = () => {
+    router.back();
+  };
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
     }),
   });
-
-  useEffect(() => {
-      notificationListener.current =
-      Notifications.addNotificationReceivedListener((notification) => {
-          console.log("Notification received: ", notification.request.content.data.orderData);
-          if(notification.request.content.data.orderData === "started"){
-            setIsRiding(true);
-            Toast.show("Ride has started, meanwhile you can play the game");
-          }
-          else if(notification.request.content.data.orderData === "ended"){
-            Toast.show("Thank you for riding with us, ride has been completed");
-            router.push("/(routes)/payments");
-          }
-      });
-
-      return () => {
-      Notifications.removeNotificationSubscription(
-          notificationListener.current
-      );
-      };
-  }, []);
-
-  useEffect(() => {
-    if(data?.driver?.currentLocation && data?.driver?.marker) {
-      const latitudeDelta =
-        Math.abs(
-          data.driver.marker.latitude -
-            data.driver.currentLocation.latitude
-        ) * 2;
-      const longitudeDelta =
-        Math.abs(
-          data.driver.marker.longitude -
-            data.driver.currentLocation.longitude
-        ) * 2;
-
-      setRegion({
-        latitude:
-          (data.driver.marker.latitude +
-            data.driver.currentLocation.latitude) /
-          2,
-        longitude:
-          (data.driver.marker.longitude +
-            data.driver.currentLocation.longitude) /
-          2,
-        latitudeDelta: Math.max(latitudeDelta, 0.0126),
-        longitudeDelta: Math.max(longitudeDelta, 0.0126),
-      });
-    }
-  },[]);
 
   const initializeWebSocket = () => {
     ws.current = new WebSocket(`ws://${process.env.EXPO_PUBLIC_HOST_IP}:${process.env.EXPO_PUBLIC_SOCKET_PORT}`);
@@ -117,17 +72,16 @@ const RideTracking = () => {
     };
 
     ws.current.onmessage =  (e) => {
-      try{
+      try {
         const message = JSON.parse(e.data);
-        if(message.type === "driverLiveLocationWithId" && message.location){
-
+        if (message.type === "driverLiveLocationWithId" && message.location) {
           setDriverLocation(message.location);
           const distance = getDistance(
             { latitude: region.latitude, longitude: region.longitude },
             { latitude: message.location.latitude, longitude: message.location.longitude }
           );
 
-          if(distance > 5){
+          if (distance > 5) {
             setRegion((prevRegion) => ({
               ...prevRegion,
               latitude: message.location.latitude,
@@ -135,8 +89,7 @@ const RideTracking = () => {
             }));
           }
         }
-      }
-      catch(e){
+      } catch (e) {
         console.error("Error parsing message: ", e);
       }
     }
@@ -150,34 +103,47 @@ const RideTracking = () => {
       setTimeout(() => initializeWebSocket(), 5000);
     };
   };
-  
-  useEffect(() => {
-    initializeWebSocket();
-    return () => {
-      if (ws.current) {
-        ws.current.close();
-      }
-    };
-  }, []);
 
-  
-    const requestRiderLocation = () => {
-      ws.current.send(
-        JSON.stringify({
-          type: "getDriverLocation",
-          role: "user",
-          driverId: riderData.id,
-        })
-      );
+  // WebSocket and Notification Listeners within useFocusEffect
+  useFocusEffect(
+    useCallback(() => {
+      initializeWebSocket();
+      
+      notificationListener.current =
+        Notifications.addNotificationReceivedListener((notification) => {
+          console.log("Notification received: ", notification.request.content.data.orderData);
+          if(notification.request.content.data.orderData === "started") {
+            setIsRiding(true);
+            Toast.show("Ride has started, meanwhile you can play the game");
+          } else if(notification.request.content.data.orderData === "ended") {
+            Toast.show("Thank you for riding with us, ride has been completed");
+            router.push("/(routes)/payments");
+          }
+        });
 
-    }
-    useFocusEffect(
-      React.useCallback(() => {
-        const intervalId = setInterval(requestRiderLocation, 10000);
-  
-        return () => clearInterval(intervalId);
-      }, [])
-    ); 
+      return () => {
+        if (ws.current) ws.current.close();
+        Notifications.removeNotificationSubscription(notificationListener.current);
+      };
+    }, []) 
+  );
+
+  const requestRiderLocation = () => {
+    ws.current.send(
+      JSON.stringify({
+        type: "getDriverLocation",
+        role: "user",
+        driverId: data.driver._id,
+      })
+    );
+  }
+
+  useFocusEffect(
+    useCallback(() => {
+      const intervalId = setInterval(requestRiderLocation, 10000);
+      return () => clearInterval(intervalId);
+    }, [])
+  );
   
 
 
@@ -185,6 +151,9 @@ const RideTracking = () => {
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
         <Toast/>
+        <TouchableOpacity style={styles.backButton} onPress={onBackPress}>
+                <Ionicons name="arrow-back" size={24} color="white" />
+        </TouchableOpacity>
         <View style={styles.riderInfo}>
         {isRideStarted ? (
           <View style={styles.motorCycleContainer}>
@@ -297,6 +266,15 @@ const styles = StyleSheet.create({
   scrollContainer: {
     flex: 1,
   },
+  backButton: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    zIndex: 1,
+    backgroundColor: '#333',
+    padding: 8,
+    borderRadius: 20,
+},
   motorCycleContainer:{
     flex: 1,
     marginBottom: 20,
