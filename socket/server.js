@@ -19,6 +19,7 @@ wss.on("connection", (ws) => {
             drivers[data.driver] = {
                 latitude: data.data.latitude,
                 longitude: data.data.longitude,
+                lastUpdated: new Date().getTime()
             };
             console.log("Updated driver location: ", drivers[data.driver]);
         }
@@ -42,13 +43,14 @@ wss.on("connection", (ws) => {
 });
 
 const findNearbyDrivers = (userLat, userLon) => {
+  console.log("Drivers: ", drivers);
     return Object.entries(drivers)
       .filter(([id, location]) => {
         const distance = geolib.getDistance(
           { latitude: userLat, longitude: userLon },
           location
         );
-        return distance <= 6000;
+        return distance <= 6000 && (new Date().getTime() - location.lastUpdated) <= 10000;
       })
       .map(([id, location]) => ({ id, ...location }));
 };

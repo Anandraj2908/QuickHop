@@ -16,6 +16,9 @@ import {
 } from 'react-native';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from 'expo-router';
+import Constants from 'expo-constants';
+import * as Device from 'expo-device';
+import * as Notifications from 'expo-notifications';
 
 const LoginScreen = () => {
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -31,7 +34,64 @@ const LoginScreen = () => {
       duration: 1000,
       useNativeDriver: true,
     }).start();
+    checkExistingToken();
   }, []);
+
+  const checkExistingToken = async () => {
+      try {
+          const token = await AsyncStorage.getItem("accessToken");
+          if (token) {
+              router.replace("/(tabs)/home");
+          }
+      } catch (error) {
+          console.error("Token check failed:", error);
+      }
+  };
+
+  async function registerForPushNotificationsAsync() {
+      let token = null;
+      
+      if (!Device.isDevice) {
+          Toast.show("Push notifications require a physical device", { type: "warning" });
+          return null;
+      }
+
+      try {
+          const { status: existingStatus } = await Notifications.getPermissionsAsync();
+          let finalStatus = existingStatus;
+          
+          if (existingStatus !== "granted") {
+              const { status } = await Notifications.requestPermissionsAsync();
+              finalStatus = status;
+          }
+          
+          if (finalStatus !== "granted") {
+              Toast.show("Push notifications permission not granted", { type: "warning" });
+              return null;
+          }
+
+          const projectId = Constants?.expoConfig?.extra?.eas?.projectId ?? Constants?.easConfig?.projectId;
+          if (!projectId) {
+              throw new Error("Project ID not found");
+          }
+
+          token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
+          
+          if (Platform.OS === "android") {
+              await Notifications.setNotificationChannelAsync("default", {
+                  name: "default",
+                  importance: Notifications.AndroidImportance.MAX,
+                  vibrationPattern: [0, 250, 250, 250],
+                  lightColor: "#FF231F7C",
+              });
+          }
+      } catch (error) {
+          console.error("Push notification setup failed:", error);
+          Toast.show("Failed to setup push notifications", { type: "error" });
+      }
+
+      return token;
+  }
 
   const handleLogin = async () => {
     try {
@@ -53,13 +113,15 @@ const LoginScreen = () => {
         setError('Password must be at least 6 characters long');
         return;
       }
-  
+      
       const formattedNumber = `+91${phoneNumber}`;
+      const pushToken = await registerForPushNotificationsAsync();
       const response = await axios.post(
         `${process.env.EXPO_PUBLIC_SERVER_URI}/riders/login`,
         {
           phoneNumber: formattedNumber,
-          password
+          password,
+          notificationToken: pushToken,
         },
         {
           timeout: 10000,

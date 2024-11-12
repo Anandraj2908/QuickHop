@@ -17,8 +17,6 @@ import * as Notifications from "expo-notifications";
 import * as GeoLocation from "expo-location";
 import Toast from '../components/Toast';
 import {  LOCATIONS, RATE_CHART } from '../constants/constants';
-import Constants from 'expo-constants';
-import * as Device from 'expo-device';
 import { useRouter } from 'expo-router';
 import RideRequestModal from '../components/RideRequestModal';
 import AcceptingRidesButton from '../components/AcceptRideButton';
@@ -51,7 +49,8 @@ const HomeScreen = () => {
   const [isProcessingRide, setIsProcessingRide] = useState(false);
   const [isCurrentRide, setIsCurrentRide] = useState(false);
   const [rideDetails, setRideDetails ] = useState(null);
-  
+  const [isUserDataLoaded, setIsUserDataLoaded] = useState(false);
+  const watcherRef = useRef(null);
   
   //basic utility functions
   const haversineDistance = (coords1, coords2) => {
@@ -79,6 +78,16 @@ const HomeScreen = () => {
     return rateInfo ? rateInfo.rate : 0;
   };
 
+  const startRippleAnimation = () => {
+    rippleAnimation.setValue(0);
+    Animated.sequence([
+      Animated.timing(rippleAnimation, {
+        toValue: 1,
+        duration: 1000,
+        useNativeDriver: true,
+      })
+    ]).start();
+  };
 
 
   //NOTIFICATIONS **
@@ -126,6 +135,7 @@ const HomeScreen = () => {
           setDestinationLocationName(orderData.destinationLocationName || "");
           setUserData(orderData.user);
           setRideCharge(orderData.rideCharge);
+          setIsUserDataLoaded(true);
         } else {
           console.error("Notification data missing required properties.");
         }
@@ -136,74 +146,13 @@ const HomeScreen = () => {
     };
   }, []);
 
-  //call registerForPushNotificationsAsync
-  useEffect(() => {
-    registerForPushNotificationsAsync();
-  }, []);
+  
 
-  const registerForPushNotificationsAsync = async () => {
-    if (Device.isDevice) {
-      const { status: existingStatus } = await Notifications.getPermissionsAsync();
-      let finalStatus = existingStatus;
-
-      if (existingStatus !== "granted") {
-        const { status } = await Notifications.requestPermissionsAsync();
-        finalStatus = status;
-      }
-
-      if (finalStatus !== "granted") {
-        Toast.show({
-          text: "Failed to get push token for push notification!",
-          type: "danger",
-        });
-        return;
-      }
-
-      const projectId =
-        Constants?.expoConfig?.extra?.eas?.projectId || Constants?.easConfig?.projectId;
-
-      if (!projectId) {
-        Toast.show({
-          text: "Failed to get project id for push notification!",
-          type: "danger",
-        });
-        return;
-      }
-
-      try {
-        const pushTokenResponse = await Notifications.getExpoPushTokenAsync({ projectId });
-        const pushTokenString = pushTokenResponse.data;
-        return pushTokenString;
-
-      } catch (e) {
-        Toast.show({
-          text: `${e}`,
-          type: "danger",
-        });
-      }
-    } else {
-      Toast.show({
-        text: "Must use physical device for Push Notifications",
-        type: "danger",
-      });
-    }
-
-    // Setup notification channel for Android devices
-    if (Platform.OS === "android") {
-      await Notifications.setNotificationChannelAsync("default", {
-        name: "default",
-        importance: Notifications.AndroidImportance.MAX,
-        vibrationPattern: [0, 250, 250, 250],
-        lightColor: "#FF231F7C",
-      });
-    }
-  };
-
-  const sendPushNotification = async ( data) => {
+  const sendPushNotification = async ( expoPushToken,data) => {
     let message = {};
     if(data.status === "cancelled"){
       message = {
-        to: "ExponentPushToken[ofS4h6DXUTnJL0KETIWKR3]",
+        to: expoPushToken,
         sound: "default",
         title: "Ride Request Cancelled!",
         body: `Your FRIEND has cancelled the ride! You can now request another ride.`,
@@ -213,7 +162,7 @@ const HomeScreen = () => {
 
     else{
       message = {
-        to: "ExponentPushToken[ofS4h6DXUTnJL0KETIWKR3]",
+        to: expoPushToken,
         sound: "default",
         title: "Ride Request Accepted!",
         body: `Your FRIEND is on the way!`,
@@ -228,6 +177,7 @@ const HomeScreen = () => {
       console.log("Error sending push notification:", error);
     }
   };
+
   //websocket updates
   useEffect(() => {
     ws.onopen = () => {
@@ -284,66 +234,50 @@ const HomeScreen = () => {
     (async () => {
       let { status } = await GeoLocation.requestForegroundPermissionsAsync();
       if (status !== "granted") {
-        Toast.show("Please give us to access your location to use this app!");
+        Toast.show("Please give permission to access your location to use this app!");
         return;
       }
-
-      await GeoLocation.watchPositionAsync(
-        {
-          accuracy: GeoLocation.Accuracy.High,
-          timeInterval: 10000,
-          distanceInterval: 1,
-        },
-        async (position) => {
-          const { latitude, longitude } = position.coords;
-          const newLocation = { latitude, longitude };
-          if (
-            !lastLocation ||
-            haversineDistance(lastLocation, newLocation) > 200
-          ) {
-            setCurrentLocation(newLocation);
-            setLastLocation(newLocation);
-            if (ws.readyState === WebSocket.OPEN) {
-              await sendLocationUpdate(newLocation);
+      
+      if(isAcceptingRides){
+        if(watcherRef.current) return;
+        
+        watcherRef.current = await GeoLocation.watchPositionAsync(
+          {
+            accuracy: GeoLocation.Accuracy.High,
+            timeInterval: 10000,
+            distanceInterval: 1,
+          },
+          async (position) => {
+            const { latitude, longitude } = position.coords;
+            const newLocation = { latitude, longitude };
+            if (
+              !lastLocation ||
+              haversineDistance(lastLocation, newLocation) > 2
+            ) {
+              setCurrentLocation(newLocation);
+              setLastLocation(newLocation);
+              if (ws.readyState === WebSocket.OPEN) {
+                await sendLocationUpdate(newLocation);
+              }
             }
           }
-        }
-      );
-    })();
-  }, []);
-
-  //location permission and sending location updates
-  useEffect(() => {
-    (async () => {
-      let { status } = await GeoLocation.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        Toast.show("Please give us to access your location to use this app!");
-        return;
+        );
       }
-
-      await GeoLocation.watchPositionAsync(
-        {
-          accuracy: GeoLocation.Accuracy.High,
-          timeInterval: 10000,
-          distanceInterval: 1,
-        },
-        async (position) => {
-          const { latitude, longitude } = position.coords;
-          const newLocation = { latitude, longitude };
-          if (
-            !lastLocation ||
-            haversineDistance(lastLocation, newLocation) > 200
-          ) {
-            setCurrentLocation(newLocation);
-            setLastLocation(newLocation);
-            if (ws.readyState === WebSocket.OPEN) {
-              await sendLocationUpdate(newLocation);
-            }
-          }
-        }
-      );
+      else if( watcherRef.current){
+        watcherRef.current.remove();
+        watcherRef.current = null;
+      }
     })();
-  }, []);
+
+    return () => {
+      if (watcherRef.current) {
+        watcherRef.current.remove();
+        watcherRef.current = null;
+      }
+    };
+  }, [isAcceptingRides]);
+
+ 
 
 
   //ride details banner functionalities **
@@ -406,7 +340,7 @@ const HomeScreen = () => {
   }, [isModalVisible, isRideAcceptTriggered, isProcessingRide]);
 
   const acceptRideHandler = async () => {
-    if (isProcessingRide || isRideAcceptTriggered) return;
+    if (isProcessingRide || isRideAcceptTriggered || !isUserDataLoaded) return;
     
     try {
       setIsProcessingRide(true);
@@ -448,8 +382,8 @@ const HomeScreen = () => {
         status: "accepted",
       };
   
-      await sendPushNotification(data);
-      
+      await sendPushNotification(userData.notificationToken, data);
+      toggleAcceptingRides();
       router.push({
         pathname: "/(routes)/ride-details",
       });
@@ -465,13 +399,13 @@ const HomeScreen = () => {
   };
 
   const cancelRideHandler = async () => {
-    if (isProcessingRide || !isModalVisible || isRideAcceptTriggered) return;
+    if (isProcessingRide || !isModalVisible || isRideAcceptTriggered || !isUserDataLoaded) return;
     
     try {
       setIsProcessingRide(true);
       setIsModalVisible(false);
       setIsRideAcceptTriggered(true);
-      await sendPushNotification({ status: "cancelled" });
+      await sendPushNotification(userData.notificationToken,{ status: "cancelled" });
     } catch (error) {
       console.error("Error cancelling ride:", error);
       setIsRideAcceptTriggered(false);
@@ -480,10 +414,6 @@ const HomeScreen = () => {
       setIsProcessingRide(false);
     }
   };
-
-
-
-
 
   //ON/OFF button functionalities **
 
@@ -523,19 +453,6 @@ const HomeScreen = () => {
     }
   };
 
-  const startRippleAnimation = () => {
-    rippleAnimation.setValue(0);
-    Animated.sequence([
-      Animated.timing(rippleAnimation, {
-        toValue: 1,
-        duration: 1000,
-        useNativeDriver: true,
-      })
-    ]).start();
-  };
-
-
-  
 
   
   return (

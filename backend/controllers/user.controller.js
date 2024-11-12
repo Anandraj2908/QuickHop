@@ -164,10 +164,14 @@ const signup = asyncHandler(async (req, res) => {
 });
 
 const login = asyncHandler(async (req, res) => {
-    const { phoneNumber, password } = req.body;
+    const { phoneNumber, password, notificationToken } = req.body;
 
     if (!phoneNumber || !password) {
         throw new ApiError(400, "Phone number and password are required.");
+    }
+
+    if(!notificationToken){
+        throw new ApiError(400, "Notification token is required.")
     }
 
     const user = await User.findOne({ phoneNumber });
@@ -181,8 +185,9 @@ const login = asyncHandler(async (req, res) => {
     }
 
     const {accessToken, refreshToken} = await generateAccessAndRefreshTokens(user._id);
-
-    const loggedInUser = await User.findById(user._id).select("-password -refreshToken")
+    
+    await User.findByIdAndUpdate(user._id, {notificationToken})
+    let loggedInUser = await User.findById(user._id).select("-password -refreshToken") 
 
     const options = {
         httpOnly: true,

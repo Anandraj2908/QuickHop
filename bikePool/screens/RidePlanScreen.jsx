@@ -12,6 +12,7 @@ import {
     Platform,
     Dimensions,
     ImageBackground,
+    ActivityIndicator,
 } from 'react-native';
 import { MaterialIcons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 import RideConfirmationModal from '../components/RideConfirmationModal';
@@ -20,12 +21,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Notifications from "expo-notifications";
 import { useRouter } from 'expo-router';
 import { LOCATIONS, RATE_CHART } from '../constants/constants.js';
-import Constants from 'expo-constants';
-import * as Device from 'expo-device';
 import axios from 'axios';
 import useGetUserData from '../hooks/useGetUserData.js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Wallpaper from '../assets/images/ridePlanWallpaper.jpg'
+import RadarScanner from '../components/FindingRiders.jsx';
 const { width } = Dimensions.get('window');
 
 const RidePlanScreen = () => {
@@ -59,6 +59,7 @@ const RidePlanScreen = () => {
     const [animationCount, setAnimationCount] = useState(0);
     const [isCurrentRide, setIsCurrentRide] = useState(false);
     const [rideDetails, setRideDetails] = useState(null);
+    const [isDriverLoading, setIsDriverLoading] = useState(false);
     const [region, setRegion] = useState({
         latitude: 12.906954343,
         longitude: 77.499163806,
@@ -231,62 +232,6 @@ const RidePlanScreen = () => {
     }, []);
 
 
-    useEffect(() => {
-        registerForPushNotificationsAsync();
-    }, []);
-
-    async function registerForPushNotificationsAsync() {
-        if (Device.isDevice) {
-        const { status: existingStatus } =
-            await Notifications.getPermissionsAsync();
-        let finalStatus = existingStatus;
-        if (existingStatus !== "granted") {
-            const { status } = await Notifications.requestPermissionsAsync();
-            finalStatus = status;
-        }
-        if (finalStatus !== "granted") {
-            Toast.show("Failed to get push token for push notification!", {
-            type: "danger",
-            });
-            return;
-        }
-        const projectId =
-            Constants?.expoConfig?.extra?.eas?.projectId ??
-            Constants?.easConfig?.projectId;
-        if (!projectId) {
-            Toast.show("Failed to get project id for push notification!", {
-            type: "danger",
-            });
-        }
-        try {
-            const pushTokenString = (
-            await Notifications.getExpoPushTokenAsync({
-                projectId,
-            })
-            ).data;
-            console.log("Push token:", pushTokenString);
-            return pushTokenString;
-        } catch (e) {
-            Toast.show(`${e}`, {
-            type: "danger",
-            });
-        }
-        } else {
-        Toast.show("Must use physical device for Push Notifications", {
-            type: "danger",
-        });
-        }
-
-        if (Platform.OS === "android") {
-        Notifications.setNotificationChannelAsync("default", {
-            name: "default",
-            importance: Notifications.AndroidImportance.MAX,
-            vibrationPattern: [0, 250, 250, 250],
-            lightColor: "#FF231F7C",
-        });
-        }
-    }
-
     const calculateDistance = (lat1, lon1, lat2, lon2) => {
         var p = 0.017453292519943295;
         var c = Math.cos;
@@ -312,39 +257,52 @@ const RidePlanScreen = () => {
 
     
     const getDriversData = async (drivers) => {
-        const driverIds = drivers.map((driver) => driver.id).join(",");
-        console.log("Driver ids:", driverIds);
-        const response = await axios.post(
-        `${process.env.EXPO_PUBLIC_SERVER_URI}/riders/get-riders-by-id`,
-        {
-            ids: driverIds ,
+        if (!drivers || drivers.length === 0) {
+            setDriverLists([]);
+            setShowRiders(true);
+            setDriverLoader(false);
+            return;
         }
-        );
 
-        const driverData = response.data;
-        setDriverLists(driverData.data);
-        setShowRiders(true);
-        setDriverLoader(false);
+        try{
+            const driverIds = drivers.map((driver) => driver.id).join(",");
+            console.log("Driver ids:", driverIds);
+            const response = await axios.post(
+            `${process.env.EXPO_PUBLIC_SERVER_URI}/riders/get-riders-by-id`,
+            {
+                ids: driverIds ,
+            }
+            );
+
+            const driverData = response.data;
+            setDriverLists(driverData.data);
+            setShowRiders(true);
+            setDriverLoader(false);
+        }
+        catch(error){
+            console.error("Error fetching drivers data:", error);
+            Toast.show("Error fetching drivers data");
+            setDriverLists([]);
+        }
     };
 
     const getNearbyDrivers = () => {
         ws.current.onmessage = async (e) => {
-        try {
-            const message = JSON.parse(e.data);
-            if (message.type === "nearbyDrivers") {
-                const validDrivers = message.drivers.filter((driver) => {
-                    return driver.id && driver.id !== "undefined" && driver.id !== "[object Object]";
-                });
-            await getDriversData(validDrivers);
+            try {
+                const message = JSON.parse(e.data);
+                if (message.type === "nearbyDrivers") {
+                    const validDrivers = message.drivers.filter((driver) => {
+                        return driver.id && driver.id !== "undefined" && driver.id !== "[object Object]";
+                    });
+                    await getDriversData(validDrivers);
+                }
+            } catch (error) {
+                console.log("Error parsing websocket :", error);
             }
-        } catch (error) {
-            console.log(error, "Error parsing websocket");
-        }
         };
     };
 
     const requestNearbyDrivers = () => {
-        console.log(wsConnected);
         if (currentLocation && wsConnected) {
         ws.current.send(
             JSON.stringify({
@@ -354,7 +312,12 @@ const RidePlanScreen = () => {
             longitude: currentLocation.longitude,
             })
         );
-        getNearbyDrivers();
+        setIsDriverLoading(true);
+        setShowRiders(true);
+        setTimeout(() => {
+            getNearbyDrivers();
+            setIsDriverLoading(false);
+        }, 10000);
         }
     };
 
@@ -376,7 +339,6 @@ const RidePlanScreen = () => {
 
     
     const handleConfirmBooking = async () => {
-        
         const data = {
             user,
             currentLocation,
@@ -384,10 +346,10 @@ const RidePlanScreen = () => {
             distance: distance.toFixed(2),
             currentLocationName:pickup.name,
             destinationLocationName:dropoff.name,
-            rideCharge
+            rideCharge,
+            userNotificationToken: user.notificationToken,
             };
-            const driverPushToken = "ExponentPushToken[mZ94POKUNw5V8E6oNxOWIB]";
-            await sendPushNotification(driverPushToken, JSON.stringify(data));
+            await sendPushNotification(selectedRider.notificationToken, JSON.stringify(data));
          
         setShowConfirmation(true);
         setShowRiders(false);
@@ -431,12 +393,10 @@ const RidePlanScreen = () => {
         <ImageBackground source={Wallpaper} 
         style={styles.backgroundImage}>
         <SafeAreaView style={styles.container}  >
-            {/* Back Button */}
             <Toast/>
-            <TouchableOpacity style={styles.backButton}>
-                <MaterialIcons name="arrow-back" size={24} color="#000" />
-            </TouchableOpacity>
-
+            {/* <View style={styles.user}>
+                <Text style={styles.greeting}>Hello, {user.firstName}!</Text>
+            </View> */}
             {/* Location Selection */}
             <View style={styles.locationContainer}>
                 <TouchableOpacity 
@@ -547,45 +507,56 @@ const RidePlanScreen = () => {
                                 <MaterialIcons name="close" size={24} color="#666" />
                             </TouchableOpacity>
                         </View>
-                        {driverLists.map((rider) => (
-                            <TouchableOpacity
-                                key={rider._id}
-                                style={[
-                                    styles.riderOption,
-                                    selectedRider?._id === rider._id && styles.selectedRiderOption
-                                ]}
-                                onPress={() => handleRiderSelect(rider)}
-                            >
-                                <Image source={{ uri: 'https://via.placeholder.com/50' }} style={styles.riderImage} />
-                                <View style={styles.riderInfo}>
-                                    <Text style={styles.riderName}>{rider.firstName} {rider.lastName}</Text>
-                                    <Text style={styles.vehicleNumber}>{rider.vehicleNumber}</Text>
-                                    <Text style={styles.vehicleNumber}>{rider.vehicleManufacturer}, {rider.vehicleModel}</Text>
-                                    <View style={styles.riderDetails}>
-                                        <View style={styles.ratingContainer}>
-                                            <MaterialIcons name="star" size={16} color="#FFD700" />
-                                            <Text style={styles.ratingText}>
-                                                {rider.ratings} ({rider.totalRides} rides)
-                                            </Text>
-                                        </View>
-                                    </View>
-                                </View>
-                                <MaterialCommunityIcons 
-                                    name={'motorbike'} 
-                                    size={24} 
-                                    color="#666" 
-                                />
-                            </TouchableOpacity>
-                        ))}
+                        
+                        {
+                            isDriverLoading ? (
+                                <RadarScanner />
+                            ) : driverLists.length === 0 ? (
+                                <Text style={styles.confirmButtonText}>OOPs! No riders available</Text>
+                            ) : (
+                                <>
+                                    {driverLists.map((rider) => (
+                                        <TouchableOpacity
+                                            key={rider._id}
+                                            style={[
+                                                styles.riderOption,
+                                                selectedRider?._id === rider._id && styles.selectedRiderOption
+                                            ]}
+                                            onPress={() => handleRiderSelect(rider)}
+                                        >
+                                            <Image source={{ uri: 'https://via.placeholder.com/50' }} style={styles.riderImage} />
+                                            <View style={styles.riderInfo}>
+                                                <Text style={styles.riderName}>{rider.firstName} {rider.lastName}</Text>
+                                                <Text style={styles.vehicleNumber}>{rider.vehicleNumber}</Text>
+                                                <Text style={styles.vehicleNumber}>{rider.vehicleManufacturer}, {rider.vehicleModel}</Text>
+                                                <View style={styles.riderDetails}>
+                                                    <View style={styles.ratingContainer}>
+                                                        <MaterialIcons name="star" size={16} color="#FFD700" />
+                                                        <Text style={styles.ratingText}>
+                                                            {rider.ratings} ({rider.totalRides} rides)
+                                                        </Text>
+                                                    </View>
+                                                </View>
+                                            </View>
+                                            <MaterialCommunityIcons 
+                                                name={'motorbike'} 
+                                                size={24} 
+                                                color="#666" 
+                                            />
+                                        </TouchableOpacity>
+                                    ))}
 
-                        {selectedRider && (
-                            <TouchableOpacity 
-                                style={styles.confirmButton}
-                                onPress={handleConfirmBooking}
-                            >
-                                <Text style={styles.confirmButtonText}>CONFIRM BOOKING</Text>
-                            </TouchableOpacity>
-                        )}
+                                    {selectedRider && (
+                                        <TouchableOpacity 
+                                            style={styles.confirmButton}
+                                            onPress={handleConfirmBooking}
+                                        >
+                                            <Text style={styles.confirmButtonText}>CONFIRM BOOKING</Text>
+                                        </TouchableOpacity>
+                                    )}
+                                </>
+                            )
+                        }  
                     </View>
                 </View>
             </Modal>
@@ -627,8 +598,14 @@ const styles = StyleSheet.create({
         resizeMode: 'cover',
         justifyContent: 'center', 
     },
-    backButton: {
-      padding: 15,
+    user: {
+        marginTop:50,
+        padding: 20,
+    },
+    greeting: {
+        fontSize: 30,
+        fontWeight: '600',
+        color: '#fff',
     },
     locationContainer: {
       backgroundColor: 'rgba(0, 0, 0,0.5)',

@@ -155,10 +155,10 @@ const RideDetails = () => {
     });
   };
 
-  const sendPushNotification = async (title, body, data) => {
+  const sendPushNotification = async (expoPushToken ,title, body, data) => {
     let message = {};
     message={
-      to:"ExponentPushToken[ofS4h6DXUTnJL0KETIWKR3]",
+      to:expoPushToken,
       sound: 'default',
       title,
       body,
@@ -174,7 +174,7 @@ const RideDetails = () => {
 
   const handleStartRide = async () => {
     try{
-      await sendPushNotification("Ride Started", "Your ride has started", "started");
+      await sendPushNotification(userData.notificationToken,"Ride Started", "Your ride has started", "started");
       setShowStartRide(false);
       setShowRiding(true);
     } catch (err) {
@@ -200,7 +200,7 @@ const RideDetails = () => {
           },
         }
       );
-      await sendPushNotification("Ride Ended", "Your ride has ended", "ended");
+      await sendPushNotification(userData.notificationToken,"Ride Ended", "Your ride has ended", "ended");
       router.push('/home');
     } catch (err) {
       console.log("Error ending ride:", err);

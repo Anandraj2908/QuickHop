@@ -1,162 +1,449 @@
-import { Link, useRouter } from "expo-router";
-import { Text, View, TextInput, TouchableOpacity, Keyboard } from "react-native";
-import { MaterialCommunityIcons } from "@expo/vector-icons"; // Import Expo icons
-//import auth from "@react-native-firebase/auth";
-//import firestore from "@react-native-firebase/firestore";
-import { useState } from "react";
+import { useRouter } from "expo-router";
+import { 
+    Text, 
+    View, 
+    TextInput, 
+    TouchableOpacity, 
+    Modal,
+    StyleSheet,
+    Animated,
+    Dimensions,
+    ActivityIndicator,
+    Platform,
+    KeyboardAvoidingView,
+    SafeAreaView
+} from "react-native";
+import { useEffect, useState, useCallback } from "react";
+import { LinearGradient } from 'expo-linear-gradient';
+import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from 'axios';
+import Constants from 'expo-constants';
+import * as Device from 'expo-device';
+import * as Notifications from 'expo-notifications';
+import Toast from "../components/Toast";
 
 export default function LoginScreen() {
     const router = useRouter();
     const [phoneNo, setPhoneNo] = useState("");
-    const [password, setPassword] = useState("");
-    const [confirm, setConfirm] = useState(null);
-    const [code, setCode] = useState("");
+    const [pin, setPin] = useState("");
+    const [showPinModal, setShowPinModal] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+    const [fadeAnim] = useState(new Animated.Value(0));
 
-    // New Login Functionality with Phone and Password
+    useEffect(() => {
+        Animated.timing(fadeAnim, {
+            toValue: 1,
+            duration: 1000,
+            useNativeDriver: true,
+        }).start();
+
+        checkExistingToken();
+    }, []);
+
+    const checkExistingToken = async () => {
+        try {
+            const token = await AsyncStorage.getItem("accessToken");
+            if (token) {
+                router.replace("/(tabs)/home");
+            }
+        } catch (error) {
+            console.error("Token check failed:", error);
+        }
+    };
+
+    const handlePhoneSubmit = async () => {
+        setError(null);
+        const phoneRegex = /^[6-9]\d{9}$/;
+        
+        if (!phoneRegex.test(phoneNo)) {
+            setError("Please enter a valid 10-digit Indian phone number");
+            Toast.show("Invalid phone number format", { type: "error" });
+            return;
+        }
+
+        setShowPinModal(true);
+    };
+
+    const handleKeyPress = useCallback((key) => {
+        if (pin.length < 6) {
+            setPin(prev => prev + key);
+        }
+    }, [pin]);
+    
+    const handleDelete = useCallback(() => {
+        setPin(prev => prev.slice(0, -1));
+    }, []);
+
+    useEffect(() => {
+        if (pin.length === 6) {
+            handleLogin();
+        }
+    }, [pin]);
+
+    async function registerForPushNotificationsAsync() {
+        let token = null;
+        
+        if (!Device.isDevice) {
+            Toast.show("Push notifications require a physical device", { type: "warning" });
+            return null;
+        }
+
+        try {
+            const { status: existingStatus } = await Notifications.getPermissionsAsync();
+            let finalStatus = existingStatus;
+            
+            if (existingStatus !== "granted") {
+                const { status } = await Notifications.requestPermissionsAsync();
+                finalStatus = status;
+            }
+            
+            if (finalStatus !== "granted") {
+                Toast.show("Push notifications permission not granted", { type: "warning" });
+                return null;
+            }
+
+            const projectId = Constants?.expoConfig?.extra?.eas?.projectId ?? Constants?.easConfig?.projectId;
+            if (!projectId) {
+                throw new Error("Project ID not found");
+            }
+
+            token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
+            
+            if (Platform.OS === "android") {
+                await Notifications.setNotificationChannelAsync("default", {
+                    name: "default",
+                    importance: Notifications.AndroidImportance.MAX,
+                    vibrationPattern: [0, 250, 250, 250],
+                    lightColor: "#FF231F7C",
+                });
+            }
+        } catch (error) {
+            console.error("Push notification setup failed:", error);
+            Toast.show("Failed to setup push notifications", { type: "error" });
+        }
+
+        return token;
+    }
+
     const handleLogin = async () => {
         try {
             setLoading(true);
-            Keyboard.dismiss();
+            setError(null);
 
-            if (!phoneNo || !password) {
-                setError("Please enter both phone number and password");
-                return;
+            if (!phoneNo || !pin) {
+                throw new Error("Please enter both phone number and PIN");
             }
 
-            const phoneRegex = /^[6-9]\d{9}$/;
-            if (!phoneRegex.test(phoneNo)) {
-                setError("Please enter a valid 10-digit Indian phone number");
-                return;
-            }
-
-            if (password.length < 6) {
-                setError("Password must be at least 6 characters long");
-                return;
+            if (pin.length !== 6) {
+                throw new Error("PIN must be exactly 6 digits");
             }
 
             const formattedNumber = `+91${phoneNo}`;
+            const pushToken = await registerForPushNotificationsAsync();
+            
             const response = await axios.post(
                 `${process.env.EXPO_PUBLIC_SERVER_URI}/users/login`,
                 {
                     phoneNumber: formattedNumber,
-                    password,
+                    password: pin,
+                    notificationToken: pushToken,
                 },
                 {
                     timeout: 10000,
                     headers: { "Content-Type": "application/json" },
                 }
             );
+
             await AsyncStorage.setItem("accessToken", response.data.data.accessToken);
-            router.push("/(tabs)/home");
+            router.replace("/(tabs)/home");
         } catch (error) {
-            setError(error.response?.data?.message || "Login failed. Please try again.");
+            setError("Login failed. Please try again.");
+            setPin("");  
         } finally {
             setLoading(false);
         }
     };
 
-    // Commented Out Previous Implementation with OTP
-    // const signInWithPhoneNumber = async () => {
-    //     try {
-    //         const confirmation = await auth().signInWithPhoneNumber(phoneNo);
-    //         setConfirm(confirmation);
-    //     } catch (e) {
-    //         alert("Failed to send OTP. Please check your phone number.");
-    //     }
-    // };
-
-    // const confirmCode = async () => {
-    //     if (confirm) {
-    //         try {
-    //             const userCredential = await confirm.confirm(code);
-    //             const user = userCredential.user;
-    //             const userDocument = await firestore().collection("users").doc(user.uid).get();
-
-    //             if (userDocument.exists) {
-    //                 router.push("/(tabs)/home");
-    //             } else {
-    //                 await firestore().collection("users").doc(user.uid).set({
-    //                     phoneNo,
-    //                     createdAt: new Date().toISOString(),
-    //                 });
-    //                 router.push("/pages/About");
-    //             }
-    //         } catch (e) {
-    //             alert("Invalid OTP. Please try again.");
-    //         }
-    //     } else {
-    //         alert("Please request an OTP before confirming.");
-    //     }
-    // };
-
-    return (
-        <View style={{ flex: 1, justifyContent: "center", alignItems: "center", paddingHorizontal: 20, backgroundColor: "#f0f8f5" }}>
-            <Text style={{ fontSize: 28, fontWeight: "600", marginBottom: 30, color: "#2c6d6a" }}>Welcome Back!</Text>
-
-            <View style={{ width: "100%", alignItems: "center", marginBottom: 20 }}>
-                <TextInput
-                    style={{
-                        height: 50,
-                        borderColor: "#e6e6e6",
-                        borderWidth: 1,
-                        width: "100%",
-                        paddingHorizontal: 15,
-                        borderRadius: 10,
-                        backgroundColor: "#fff",
-                        marginBottom: 15,
-                    }}
-                    placeholder="Phone Number"
-                    keyboardType="phone-pad"
-                    onChangeText={setPhoneNo}
-                    value={phoneNo}
-                />
-                <TextInput
-                    style={{
-                        height: 50,
-                        borderColor: "#e6e6e6",
-                        borderWidth: 1,
-                        width: "100%",
-                        paddingHorizontal: 15,
-                        borderRadius: 10,
-                        backgroundColor: "#fff",
-                        marginBottom: 15,
-                    }}
-                    placeholder="Password"
-                    secureTextEntry
-                    onChangeText={setPassword}
-                    value={password}
-                />
-
+    const CustomKeypad = useCallback(() => (
+        <View style={styles.keypadContainer}>
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 0].map((num) => (
                 <TouchableOpacity
-                    onPress={handleLogin}
-                    style={{
-                        backgroundColor: "#6bd6b4",
-                        paddingVertical: 12,
-                        borderRadius: 10,
-                        width: "100%",
-                        alignItems: "center",
-                        marginBottom: 20,
-                    }}
+                    key={num}
+                    style={styles.keypadButton}
+                    onPress={() => handleKeyPress(num.toString())}
+                    disabled={loading}
                 >
-                    <Text style={{ color: "#fff", fontSize: 16 }}>Login</Text>
+                    <Text style={styles.keypadText}>{num}</Text>
                 </TouchableOpacity>
-            </View>
-
-            <Text style={{ fontSize: 16, color: "#888", marginBottom: 15 }}>or login with</Text>
-
-            <View style={{ flexDirection: "row", width: "100%", justifyContent: "center" }}>
-                <TouchableOpacity style={{ backgroundColor: "#e0e0e0", padding: 12, borderRadius: 10 }}>
-                    <MaterialCommunityIcons name="google" size={24} color="#DB4437" />
-                </TouchableOpacity>
-            </View>
-
-            <TouchableOpacity onPress={() => router.push("/signup")} style={{ marginTop: 25 }}>
-                <Text style={{ color: "#2c6d6a", fontSize: 14 }}>Don't have an account? Sign up</Text>
+            ))}
+            <TouchableOpacity
+                style={styles.keypadButton}
+                onPress={handleDelete}
+                disabled={loading}
+            >
+                <Ionicons name="backspace-outline" size={24} color="#fff" />
             </TouchableOpacity>
         </View>
+    ), [handleKeyPress, handleDelete, loading]);
+
+    return (
+        <SafeAreaView style={styles.safeArea}>
+            <Toast/>
+            <LinearGradient
+                colors={['#000000', '#1a1a1a']}
+                style={styles.container}
+            >
+                <KeyboardAvoidingView 
+                    behavior={Platform.OS === "ios" ? "padding" : "height"}
+                    style={styles.keyboardAvoidingView}
+                >
+                    <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
+                        <View style={styles.bikeIconContainer}>
+                            <MaterialCommunityIcons name="motorbike" size={40} color="#4a6fff" />
+                        </View>
+                        
+                        <Text style={styles.title}>LOGIN TO YOUR ACCOUNT</Text>
+
+                        <View style={styles.inputContainer}>
+                            <View style={styles.inputWrapper}>
+                                <Text style={styles.phonePrefix}>+91</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="Phone Number"
+                                    placeholderTextColor="#6c6c7e"
+                                    keyboardType="phone-pad"
+                                    value={phoneNo}
+                                    onChangeText={setPhoneNo}
+                                    maxLength={10}
+                                    editable={!loading}
+                                />
+                            </View>
+
+                            
+
+                            <TouchableOpacity 
+                                style={[styles.loginButton, loading && styles.loginButtonDisabled]}
+                                onPress={handlePhoneSubmit}
+                                disabled={loading || phoneNo.length !== 10}
+                            >
+                                {loading ? (
+                                    <ActivityIndicator color="#FFFFFF" />
+                                ) : (
+                                    <Text style={styles.loginButtonText}>CONTINUE</Text>
+                                )}
+                            </TouchableOpacity>
+                        </View>
+
+                        <Modal
+                            visible={showPinModal}
+                            animationType="slide"
+                            transparent={true}
+                            onRequestClose={() => {
+                                if (!loading) {
+                                    setShowPinModal(false);
+                                    setPin("");
+                                }
+                            }}
+                        >
+                            <View style={styles.modalContainer}>
+                                <View style={styles.modalContent}>
+                                    <TouchableOpacity 
+                                        style={styles.closeButton}
+                                        onPress={() => {
+                                            if (!loading) {
+                                                setShowPinModal(false);
+                                                setPin("");
+                                            }
+                                        }}
+                                    >
+                                        <Ionicons name="close" size={24} color="#fff" />
+                                    </TouchableOpacity>
+
+                                    <Text style={styles.modalTitle}>Enter 6-digit PIN</Text>
+                                    <Text style={styles.modalSubtitle}>Please enter your PIN to login</Text>
+                                    {error && <Text style={styles.errorText}>{error}</Text>}
+                                    <View style={styles.pinContainer}>
+                                        {Array.from({ length: 6 }).map((_, index) => (
+                                            <View
+                                                key={index}
+                                                style={[
+                                                    styles.pinDot,
+                                                    pin.length > index && styles.pinDotFilled
+                                                ]}
+                                            />
+                                        ))}
+                                    </View>
+
+                                    {loading && (
+                                        <View style={styles.loadingOverlay}>
+                                            <ActivityIndicator size="large" color="#4a6fff" />
+                                        </View>
+                                    )}
+
+                                    <CustomKeypad />
+                                </View>
+                            </View>
+                        </Modal>
+                    </Animated.View>
+                </KeyboardAvoidingView>
+            </LinearGradient>
+        </SafeAreaView>
     );
 }
+
+const styles = StyleSheet.create({
+    safeArea: {
+        flex: 1,
+        backgroundColor: '#000000', // Deep black background
+    },
+    container: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.9)', // Semi-transparent black for the main background
+    },
+    keyboardAvoidingView: {
+        flex: 1,
+    },
+    content: {
+        flex: 1,
+        padding: 20,
+    },
+    bikeIconContainer: {
+        alignItems: 'center',
+        marginTop: Platform.OS === 'ios' ? 20 : 40,
+        marginBottom: 20,
+    },
+    title: {
+        fontSize: 24,
+        fontWeight: '700',
+        color: '#E0E0E0', // Light grey text for readability
+        textAlign: 'center',
+        marginBottom: 30,
+    },
+    inputContainer: {
+        width: '100%',
+        alignItems: 'center',
+    },
+    inputWrapper: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        width: '100%',
+        height: 55,
+        backgroundColor: 'rgba(255, 255, 255, 0.05)', // Very light translucent grey
+        borderRadius: 15,
+        marginBottom: 15,
+        paddingHorizontal: 15,
+    },
+    phonePrefix: {
+        color: '#BBBBBB', // Soft grey
+        fontSize: 16,
+        marginRight: 10,
+    },
+    input: {
+        flex: 1,
+        color: '#FFFFFF', // White text for clarity
+        fontSize: 16,
+        padding: 0,
+    },
+    errorText: {
+        color: 'rgba(255, 70, 70, 0.8)', // Semi-transparent red for error messages
+        fontSize: 14,
+        marginBottom: 15,
+        textAlign: 'center',
+    },
+    loginButton: {
+        width: '100%',
+        height: 55,
+        backgroundColor: 'rgba(74, 111, 255, 0.6)', // Soft translucent blue
+        borderRadius: 15,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    loginButtonDisabled: {
+        backgroundColor: 'rgba(74, 111, 255, 0.3)', // Even lighter translucent blue when disabled
+    },
+    loginButtonText: {
+        color: '#FFFFFF', // White text
+        fontSize: 16,
+        fontWeight: '600',
+    },
+    modalContainer: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.7)', // Semi-transparent black overlay
+        justifyContent: 'flex-end',
+    },
+    modalContent: {
+        backgroundColor: 'rgba(31, 31, 31, 0.95)', // Dark grey with slight transparency
+        borderTopLeftRadius: 30,
+        borderTopRightRadius: 30,
+        padding: 20,
+        paddingTop: 30,
+        minHeight: Dimensions.get('window').height * 0.6,
+    },
+    closeButton: {
+        position: 'absolute',
+        top: 20,
+        right: 20,
+        zIndex: 1,
+    },
+    modalTitle: {
+        fontSize: 24,
+        fontWeight: '700',
+        color: '#E0E0E0',
+        textAlign: 'center',
+    },
+    modalSubtitle: {
+        fontSize: 14,
+        color: '#BBBBBB',
+        textAlign: 'center',
+        marginTop: 8,
+        marginBottom: 30,
+    },
+    pinContainer: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        marginBottom: 30,
+    },
+    pinDot: {
+        width: 13,
+        height: 13,
+        borderRadius: 7,
+        backgroundColor: 'rgba(255, 255, 255, 0.1)', // Light translucent dots
+        marginHorizontal: 8,
+    },
+    pinDotFilled: {
+        backgroundColor: 'rgba(74, 111, 255, 0.6)', // Translucent blue for filled dots
+    },
+    keypadContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'space-between',
+        paddingHorizontal: 20,
+    },
+    keypadButton: {
+        width: '30%',
+        height: 75,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 20,
+        backgroundColor: 'rgba(0, 0, 0, 0.4)', // Transparent black for keypad buttons
+        borderRadius: 10,
+    },
+    keypadText: {
+        color: '#FFFFFF',
+        fontSize: 28,
+        fontWeight: '600',
+    },
+    loadingOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(18, 18, 18, 0.8)', // Dark semi-transparent overlay for loading
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 2,
+    },
+});

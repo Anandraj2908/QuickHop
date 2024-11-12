@@ -184,10 +184,14 @@ const signup = asyncHandler(async (req, res) => {
 });
 
 const login = asyncHandler(async (req, res) => {
-    const { phoneNumber, password } = req.body;
+    const { phoneNumber, password, notificationToken } = req.body;
 
     if (!phoneNumber || !password) {
         throw new ApiError(400, "Phone number and password are required.");
+    }
+
+    if (!notificationToken) {
+        throw new ApiError(400, "Notification token is required.");
     }
 
     const user = await Rider.findOne({ phoneNumber });
@@ -202,6 +206,7 @@ const login = asyncHandler(async (req, res) => {
 
     const {accessToken, refreshToken} = await generateAccessAndRefreshTokens(user._id);
 
+    await Rider.findByIdAndUpdate( user._id, { notificationToken });
     const loggedInUser = await Rider.findById(user._id).select("-password -refreshToken")
 
     const options = {

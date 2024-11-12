@@ -40,7 +40,11 @@ const userSchema = new Schema(
         },
         refreshToken: {
             type: String
-        }
+        },
+        notificationToken: {
+            type: String,
+            default: null
+        },
     },
     {
         timestamps: true
