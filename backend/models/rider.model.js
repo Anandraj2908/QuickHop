@@ -96,6 +96,10 @@ const riderSchema = new Schema(
             type: Number,
             default: 0
         },
+        upiId:{
+            type: String,
+            default: null
+        },
         status: {
             type: String,
             enum: ['active', 'inactive'],

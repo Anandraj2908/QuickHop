@@ -131,7 +131,8 @@ const signup = asyncHandler(async (req, res) => {
         isElectric, 
         vehicleManufacturer, 
         drivingLicense, 
-        vehicleRegistrationCertificate 
+        vehicleRegistrationCertificate,
+        upiId 
     } = req.body;
 
     // Validate required fields
@@ -155,7 +156,8 @@ const signup = asyncHandler(async (req, res) => {
         isElectric,
         vehicleManufacturer,
         drivingLicense,
-        vehicleRegistrationCertificate
+        vehicleRegistrationCertificate,
+        upiId
     });
 
     const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(newRider._id);
