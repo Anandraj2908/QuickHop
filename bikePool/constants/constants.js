@@ -9,7 +9,6 @@ export const LOCATIONS = [
     { id: 4, name: 'Kengeri Crossing', address: 'Junction Point', lat: 12.912429604565734, lng: 77.48552065017432, type: 'pickup' },
     { id: 5, name: 'BGS Hospital', address: 'Medical Center', lat: 12.902666463247161, lng: 77.49822618206055, type: 'drop' },
     { id: 6, name: 'Ganesha Circle', address: 'Main Junction', lat: 12.898329097309421, lng: 77.4964293637215, type: 'drop' },
-    
 ];
 
 // Rate chart linking pickup and drop locations
@@ -36,3 +35,10 @@ export const RATE_CHART = [
 
 //cylinder details : latitude: 12.9213164, longitude: 77.5107511 
 //room G: latitude: 12.9213418, longitude: 77.5107577
+
+
+//dbms lab:latitude: 12.8998096,
+   // longitude: 77.4958208,
+
+
+//cse class: latitude: 12.8999674, longitude: 77.4959111

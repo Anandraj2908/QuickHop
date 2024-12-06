@@ -15,7 +15,7 @@ const ProfileScreen = () => {
     setIsLoggingOut(true);
     try {
       await AsyncStorage.removeItem('accessToken'); 
-      router.navigate('/login')
+      router.replace('/login')
     } catch (error) {
       Alert.alert('Logout Error', 'Failed to log out. Please try again.');
     } finally {
@@ -41,14 +41,12 @@ const ProfileScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header with Edit Button */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.editButton}>
           <Feather name="edit-2" size={24} color="#fff" />
         </TouchableOpacity>
       </View>
 
-      {/* Profile Section */}
       <View style={styles.profileSection}>
         <View style={styles.profileImageContainer}>
           <Image
@@ -74,12 +72,11 @@ const ProfileScreen = () => {
         </View>
       </View>
 
-      {/* Vehicle Information */}
       <View style={styles.infoSection}>
         <Text style={styles.sectionTitle}>Vehicle Details</Text>
         <View style={styles.infoGrid}>
           <View style={styles.infoItem}>
-          <MaterialCommunityIcons name="bike" size={20} color="#666" />
+          <MaterialCommunityIcons name="motorbike" size={20} color="#666" />
             <View>
               <Text style={styles.infoLabel}>Vehicle</Text>
               <Text style={styles.infoValue}>{driver.vehicleManufacturer} {driver.vehicleModel}</Text>
@@ -88,7 +85,7 @@ const ProfileScreen = () => {
           <View style={styles.infoItem}>
             <Feather name="credit-card" size={20} color="#666" />
             <View>
-              <Text style={styles.infoLabel}>License Plate</Text>
+              <Text style={styles.infoLabel}>License No.</Text>
               <Text style={styles.infoValue}>{driver.vehicleNumber}</Text>
             </View>
           </View>
@@ -102,7 +99,6 @@ const ProfileScreen = () => {
         </View>
       </View>
 
-      {/* Logout Button */}
       <TouchableOpacity 
         style={styles.logoutButton} 
         onPress={handleLogout} 
@@ -132,7 +128,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255, 105, 180, 0.3)', // Translucent pink
+    backgroundColor: 'rgba(255, 105, 180, 0.3)',
     justifyContent: 'center',
     alignItems: 'center',
     backdropFilter: 'blur(10px)',
@@ -146,7 +142,7 @@ const styles = StyleSheet.create({
     height: 120,
     borderRadius: 60,
     borderWidth: 2,
-    borderColor: 'rgba(255, 105, 180, 0.3)', // Translucent pink border
+    borderColor: 'rgba(255, 105, 180, 0.3)', 
     elevation: 5,
     shadowColor: '#FF69B4',
     shadowOffset: { width: 0, height: 2 },
@@ -190,7 +186,7 @@ const styles = StyleSheet.create({
   statsCard: {
     backgroundColor: 'rgba(40, 40, 40, 0.7)', 
     borderRadius: 16,
-    padding: 12,
+    padding: 6,
     alignItems: 'center',
     minWidth: 100,
     borderWidth: 1,
@@ -208,7 +204,7 @@ const styles = StyleSheet.create({
   infoSection: {
     backgroundColor: 'rgba(40, 40, 40, 0.7)',
     borderRadius: 20,
-    marginTop: 20,
+    marginTop: 10,
     marginHorizontal: 20,
     padding: 20,
     borderWidth: 1,
@@ -227,7 +223,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: 'rgba(30, 30, 30, 0.6)', // Slightly darker than parent
+    backgroundColor: 'rgba(30, 30, 30, 0.6)', 
     padding: 12,
     borderRadius: 12,
     borderWidth: 1,
@@ -235,7 +231,7 @@ const styles = StyleSheet.create({
   },
   infoLabel: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.6)', // Semi-transparent white
+    color: 'rgba(255, 255, 255, 0.6)', 
   },
   infoValue: {
     fontSize: 14,
@@ -243,7 +239,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   logoutButton: {
-    backgroundColor: 'rgba(255, 105, 180, 0.2)', // Translucent pink
+    backgroundColor: 'rgba(255, 105, 180, 0.2)', 
     marginHorizontal: 20,
     marginVertical: 20,
     padding: 16,
@@ -260,14 +256,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginLeft: 8,
   },
-  // Optional gradient overlay for the main container
   gradientOverlay: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(18, 18, 18, 0.8)', // Dark overlay
+    backgroundColor: 'rgba(18, 18, 18, 0.8)', 
   },
   loaderContainer: {
     flex: 1,

@@ -1,254 +1,71 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 'react-native';
-import React, { useState } from 'react';
-import { MaterialIcons, FontAwesome, MaterialCommunityIcons } from '@expo/vector-icons';
+import React from 'react';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 
-const Payments = () => {
-  const [selectedCard, setSelectedCard] = useState(1);
-  const [amount, setAmount] = useState('');
+export default function Payments() {
+  const router = useRouter();
+  const { name, charge } = useLocalSearchParams();
 
-  const cards = [
-    { id: 1, last4: '4242', type: 'visa' },
-    { id: 2, last4: '8888', type: 'mastercard' },
-  ];
-
-  const quickAmounts = ['$10', '$20', '$50', '$100'];
-
-  const getCardIcon = (type) => {
-    switch (type) {
-      case 'visa':
-        return <FontAwesome name="cc-visa" size={32} color="#1A1F71" />;
-      case 'mastercard':
-        return <FontAwesome name="cc-mastercard" size={32} color="#EB001B" />;
-      default:
-        return <FontAwesome name="credit-card" size={32} color="#333" />;
-    }
+  const handlePayCash = () => {
+    router.replace(`/(routes)/rating?name=${name}`);
   };
 
   return (
-    <ScrollView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Payment</Text>
-        <TouchableOpacity style={styles.historyButton}>
-          <MaterialIcons name="history" size={24} color="#007AFF" />
-        </TouchableOpacity>
-      </View>
-
-      {/* Amount Input Section */}
-      <View style={styles.amountContainer}>
-        <Text style={styles.label}>Amount</Text>
-        <View style={styles.amountInputContainer}>
-          <Text style={styles.currencySymbol}>$</Text>
-          <TextInput
-            style={styles.amountInput}
-            value={amount}
-            onChangeText={setAmount}
-            keyboardType="decimal-pad"
-            placeholder="0.00"
-            placeholderTextColor="#999"
-          />
-        </View>
-
-        {/* Quick Amount Buttons */}
-        <View style={styles.quickAmounts}>
-          {quickAmounts.map((quickAmount) => (
-            <TouchableOpacity
-              key={quickAmount}
-              style={styles.quickAmountButton}
-              onPress={() => setAmount(quickAmount.replace('$', ''))}
-            >
-              <Text style={styles.quickAmountText}>{quickAmount}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
-
-      {/* Payment Methods */}
-      <View style={styles.paymentMethodsContainer}>
-        <Text style={styles.label}>Payment Method</Text>
-        {cards.map((card) => (
-          <TouchableOpacity
-            key={card.id}
-            style={[
-              styles.cardItem,
-              selectedCard === card.id && styles.selectedCard,
-            ]}
-            onPress={() => setSelectedCard(card.id)}
-          >
-            <View style={styles.cardIconContainer}>
-              {getCardIcon(card.type)}
-            </View>
-            <View style={styles.cardDetails}>
-              <Text style={styles.cardType}>{card.type.toUpperCase()}</Text>
-              <Text style={styles.cardNumber}>•••• {card.last4}</Text>
-            </View>
-            <View style={styles.radioButton}>
-              {selectedCard === card.id && <View style={styles.radioSelected} />}
-            </View>
-          </TouchableOpacity>
-        ))}
-
-        <TouchableOpacity style={styles.addCardButton}>
-          <MaterialCommunityIcons name="credit-card-plus" size={24} color="#007AFF" />
-          <Text style={styles.addCardText}>Add New Card</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Pay Button */}
-      <TouchableOpacity style={styles.payButton}>
-        <Text style={styles.payButtonText}>Pay Now</Text>
+    <View style={styles.container}>
+      <Text style={styles.title}>Payment</Text>
+      <Text style={styles.message}>
+      "Rs. {charge} for {name} – because every great ride deserves a grand finish!"
+      </Text>
+      <TouchableOpacity style={styles.payButton} onPress={handlePayCash}>
+        <Text style={styles.payButtonText}>I've Paid Cash 💸</Text>
       </TouchableOpacity>
-    </ScrollView>
+    </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#1A1A2E', // Deep dark blue background
+    alignItems: 'center',
+    justifyContent: 'center',
     padding: 20,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 30,
-  },
-  headerTitle: {
-    fontSize: 24,
+  title: {
+    fontSize: 32,
+    color: '#FFD700', // Gold color for a bold title
     fontWeight: 'bold',
-    color: '#333',
-  },
-  historyButton: {
-    padding: 8,
-  },
-  amountContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
+    textShadowColor: '#000',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 4,
     marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    textTransform: 'uppercase',
   },
-  label: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 12,
-  },
-  amountInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
-    paddingBottom: 8,
-  },
-  currencySymbol: {
-    fontSize: 24,
-    color: '#333',
-    marginRight: 8,
-  },
-  amountInput: {
-    flex: 1,
-    fontSize: 24,
-    color: '#333',
-  },
-  quickAmounts: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 16,
-  },
-  quickAmountButton: {
-    backgroundColor: '#f0f0f0',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-  },
-  quickAmountText: {
-    color: '#333',
-    fontWeight: '500',
-  },
-  paymentMethodsContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
+  message: {
+    fontSize: 20,
+    color: '#FFFFFF',
+    textAlign: 'center',
+    fontStyle: 'italic',
     marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  cardItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    borderRadius: 8,
-    marginBottom: 8,
-    backgroundColor: '#f8f8f8',
-  },
-  selectedCard: {
-    backgroundColor: '#e3efff',
-  },
-  cardIconContainer: {
-    marginRight: 16,
-  },
-  cardDetails: {
-    flex: 1,
-  },
-  cardType: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-  },
-  cardNumber: {
-    fontSize: 14,
-    color: '#666',
-  },
-  radioButton: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: '#007AFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  radioSelected: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#007AFF',
-  },
-  addCardButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#007AFF',
-    borderStyle: 'dashed',
-  },
-  addCardText: {
-    marginLeft: 8,
-    color: '#007AFF',
-    fontWeight: '500',
+    lineHeight: 28,
+    paddingHorizontal: 15,
   },
   payButton: {
-    backgroundColor: '#007AFF',
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
+    backgroundColor: '#FF4500', // Bright orange for a bold, striking button
+    paddingVertical: 12,
+    paddingHorizontal: 25,
+    borderRadius: 8,
+    elevation: 10,
+    shadowColor: '#FF6347', // Light red shadow for a glow effect
+    shadowOpacity: 0.6,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 8,
+    marginTop: 20,
   },
   payButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '700',
   },
 });
-
-export default Payments;

@@ -100,6 +100,11 @@ const riderSchema = new Schema(
             type: String,
             default: null
         },
+        gender: {
+            type: String,
+            enum: ["Male", "Female"], 
+            required: true,
+        },
         status: {
             type: String,
             enum: ['active', 'inactive'],

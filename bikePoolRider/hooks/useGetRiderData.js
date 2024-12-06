@@ -19,7 +19,6 @@ export const useGetDriverData = () => {
             Authorization: `Bearer ${accessToken}`,
           },
         });
-
         setDriver(res.data.data);
       } catch (error) {
         console.error("Error fetching driver data:", error);

@@ -166,6 +166,10 @@ export default function LoginScreen() {
         }
     };
 
+    const handleSignUp = () =>{
+        router.replace("/(routes)/signup")
+    }
+
     const CustomKeypad = useCallback(() => (
         <View style={styles.keypadContainer}>
             {[1, 2, 3, 4, 5, 6, 7, 8, 9, 0].map((num) => (
@@ -235,7 +239,17 @@ export default function LoginScreen() {
                                 )}
                             </TouchableOpacity>
                         </View>
-
+                        <View style={styles.signupContainer}>
+                            <Text style={styles.signupText}>
+                                New here?{' '}
+                                <Text 
+                                    style={styles.signupLink} 
+                                    onPress={handleSignUp} 
+                                >
+                                    Sign Up
+                                </Text>
+                            </Text>
+                        </View>
                         <Modal
                             visible={showPinModal}
                             animationType="slide"
@@ -296,11 +310,11 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
-        backgroundColor: '#000000', // Deep black background
+        backgroundColor: '#000000', 
     },
     container: {
         flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.9)', // Semi-transparent black for the main background
+        backgroundColor: 'rgba(0, 0, 0, 0.9)', 
     },
     keyboardAvoidingView: {
         flex: 1,
@@ -317,7 +331,7 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 24,
         fontWeight: '700',
-        color: '#E0E0E0', // Light grey text for readability
+        color: '#E0E0E0',
         textAlign: 'center',
         marginBottom: 30,
     },
@@ -330,24 +344,24 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         width: '100%',
         height: 55,
-        backgroundColor: 'rgba(255, 255, 255, 0.05)', // Very light translucent grey
+        backgroundColor: 'rgba(255, 255, 255, 0.05)', 
         borderRadius: 15,
         marginBottom: 15,
         paddingHorizontal: 15,
     },
     phonePrefix: {
-        color: '#BBBBBB', // Soft grey
+        color: '#BBBBBB', 
         fontSize: 16,
         marginRight: 10,
     },
     input: {
         flex: 1,
-        color: '#FFFFFF', // White text for clarity
+        color: '#FFFFFF', 
         fontSize: 16,
         padding: 0,
     },
     errorText: {
-        color: 'rgba(255, 70, 70, 0.8)', // Semi-transparent red for error messages
+        color: 'rgba(255, 70, 70, 0.8)',
         fontSize: 14,
         marginBottom: 15,
         textAlign: 'center',
@@ -355,26 +369,26 @@ const styles = StyleSheet.create({
     loginButton: {
         width: '100%',
         height: 55,
-        backgroundColor: 'rgba(74, 111, 255, 0.6)', // Soft translucent blue
+        backgroundColor: 'rgba(74, 111, 255, 0.6)', 
         borderRadius: 15,
         justifyContent: 'center',
         alignItems: 'center',
     },
     loginButtonDisabled: {
-        backgroundColor: 'rgba(74, 111, 255, 0.3)', // Even lighter translucent blue when disabled
+        backgroundColor: 'rgba(74, 111, 255, 0.3)', 
     },
     loginButtonText: {
-        color: '#FFFFFF', // White text
+        color: '#FFFFFF',
         fontSize: 16,
         fontWeight: '600',
     },
     modalContainer: {
         flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.7)', // Semi-transparent black overlay
+        backgroundColor: 'rgba(0, 0, 0, 0.7)', 
         justifyContent: 'flex-end',
     },
     modalContent: {
-        backgroundColor: 'rgba(31, 31, 31, 0.95)', // Dark grey with slight transparency
+        backgroundColor: 'rgba(31, 31, 31, 0.8)', 
         borderTopLeftRadius: 30,
         borderTopRightRadius: 30,
         padding: 20,
@@ -409,11 +423,11 @@ const styles = StyleSheet.create({
         width: 13,
         height: 13,
         borderRadius: 7,
-        backgroundColor: 'rgba(255, 255, 255, 0.1)', // Light translucent dots
+        backgroundColor: 'rgba(255, 255, 255, 0.1)', 
         marginHorizontal: 8,
     },
     pinDotFilled: {
-        backgroundColor: 'rgba(74, 111, 255, 0.6)', // Translucent blue for filled dots
+        backgroundColor: 'rgba(74, 111, 255, 0.6)',
     },
     keypadContainer: {
         flexDirection: 'row',
@@ -427,7 +441,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: 20,
-        backgroundColor: 'rgba(0, 0, 0, 0.4)', // Transparent black for keypad buttons
+        backgroundColor: 'rgba(0, 0, 0, 0.4)', 
         borderRadius: 10,
     },
     keypadText: {
@@ -441,9 +455,24 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor: 'rgba(18, 18, 18, 0.8)', // Dark semi-transparent overlay for loading
+        backgroundColor: 'rgba(18, 18, 18, 0.8)', 
         justifyContent: 'center',
         alignItems: 'center',
         zIndex: 2,
     },
+    signupContainer: {
+        marginTop: 15,
+        alignItems: 'center',
+    },
+    signupText: {
+        color: '#BBBBBB', 
+        fontSize: 14,
+    },
+    signupLink: {
+        color: '#4a6fff', 
+        fontWeight: '700', 
+        textDecorationLine: 'underline', 
+    },
+    
+    
 });

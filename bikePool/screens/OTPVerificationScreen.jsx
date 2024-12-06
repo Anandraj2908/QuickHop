@@ -39,7 +39,7 @@ const OTPVerificationScreen = () => {
           try {
             setIsCheckingPhoneAlreadyExists(true);
             const response = await axios.get(
-              `${process.env.EXPO_PUBLIC_SERVER_URI}/riders/get-rider-by-phonenumber`,
+              `${process.env.EXPO_PUBLIC_SERVER_URI}/users/get-user-by-phonenumber`,
               {
                 params: { phoneNumber: `+91${phoneNumber}` }, 
                 timeout: 10000,
@@ -51,7 +51,7 @@ const OTPVerificationScreen = () => {
               setError("Phone number already registered. Try logging in.");
               return;
             }
-            await axios.post(`${process.env.EXPO_PUBLIC_SERVER_URI}/riders/sendotp`, { phoneNumber: `+91${phoneNumber}` });
+            await axios.post(`${process.env.EXPO_PUBLIC_SERVER_URI}/users/sendotp`, { phoneNumber: `+91${phoneNumber}` });
             setShowOtpModal(true);
             setError("");
             setTimer(60);
@@ -96,7 +96,7 @@ const OTPVerificationScreen = () => {
     try {
 
         await axios.post(
-            `${process.env.EXPO_PUBLIC_SERVER_URI}/riders/verifyotp`,
+            `${process.env.EXPO_PUBLIC_SERVER_URI}/users/verifyotp`,
             { 
                 phoneNumber: `+91${phoneNumber}`, 
                 code: otp 
@@ -143,10 +143,7 @@ const OTPVerificationScreen = () => {
     
     router.replace("/(routes)/login");
   };
-  const handleSignupRedirect = () => {
-    
-    router.replace("/(routes)/signup/registration");
-  };
+  
 
   return (
     <View style={styles.container}>
@@ -174,9 +171,6 @@ const OTPVerificationScreen = () => {
         </Text>
         <TouchableOpacity onPress={handleLoginRedirect}>
             <Text style={styles.loginText}>Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={handleSignupRedirect}>
-            <Text style={styles.loginText}>Signup</Text>
         </TouchableOpacity>
       </View>
       <Modal

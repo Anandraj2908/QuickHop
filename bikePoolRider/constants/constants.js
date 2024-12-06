@@ -34,3 +34,4 @@ export const RATE_CHART = [
     { pickupId: 5, dropId: 4, rate: 15 },  // BGS Hospital to Kengeri Crossing
     { pickupId: 6, dropId: 4, rate: 20 },  // Ganesha Circle to Kengeri Crossing
 ];
+

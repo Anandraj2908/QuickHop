@@ -13,7 +13,7 @@ export default function ProfileScreen() {
     setIsLoggingOut(true);
     try {
       await AsyncStorage.removeItem('accessToken'); 
-      router.navigate('/login')
+      router.replace('/login')
     } catch (error) {
       Alert.alert('Logout Error', 'Failed to log out. Please try again.');
     } finally {
@@ -32,14 +32,12 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header with Edit Button */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.editButton}>
           <Feather name="edit-2" size={24} color="#fff" />
         </TouchableOpacity>
       </View>
 
-      {/* Profile Section */}
       <View style={styles.profileSection}>
         <View style={styles.profileImageContainer}>
           <Image source={DarkCover} style={styles.profileImage} />
@@ -62,7 +60,6 @@ export default function ProfileScreen() {
         </View>
       </View>
 
-      {/* User Information */}
       <View style={styles.infoSection}>
         <Text style={styles.sectionTitle}>Account Details</Text>
         <View style={styles.infoGrid}>
@@ -83,7 +80,6 @@ export default function ProfileScreen() {
         </View>
       </View>
 
-      {/* Logout Button */}
       <TouchableOpacity style={styles.logoutButton} onPress={handleLogout} disabled={isLoggingOut}>
         <Feather name="log-out" size={20} color="#fff" />
         <Text style={styles.logoutText}>
@@ -109,7 +105,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255, 105, 180, 0.3)', // Translucent pink
+    backgroundColor: 'rgba(255, 105, 180, 0.3)',
     justifyContent: 'center',
     alignItems: 'center',
     backdropFilter: 'blur(10px)',
@@ -123,7 +119,7 @@ const styles = StyleSheet.create({
     height: 120,
     borderRadius: 60,
     borderWidth: 2,
-    borderColor: 'rgba(255, 105, 180, 0.3)', // Translucent pink border
+    borderColor: 'rgba(255, 105, 180, 0.3)', 
     elevation: 5,
     shadowColor: '#FF69B4',
     shadowOffset: { width: 0, height: 2 },
@@ -172,7 +168,7 @@ const styles = StyleSheet.create({
   infoSection: {
     backgroundColor: 'rgba(40, 40, 40, 0.7)',
     borderRadius: 20,
-    marginTop: 10,
+    marginTop: 5,
     marginHorizontal: 20,
     paddingHorizontal: 20,
     paddingVertical: 10,
@@ -191,8 +187,8 @@ const styles = StyleSheet.create({
   infoItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    backgroundColor: 'rgba(30, 30, 30, 0.6)', // Slightly darker than parent
+    gap: 6,
+    backgroundColor: 'rgba(30, 30, 30, 0.6)', 
     padding: 12,
     borderRadius: 12,
     borderWidth: 1,
@@ -200,7 +196,7 @@ const styles = StyleSheet.create({
   },
   infoLabel: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.6)', // Semi-transparent white
+    color: 'rgba(255, 255, 255, 0.6)', 
   },
   infoValue: {
     fontSize: 14,
@@ -208,7 +204,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   logoutButton: {
-    backgroundColor: 'rgba(255, 105, 180, 0.2)', // Translucent pink
+    backgroundColor: 'rgba(255, 105, 180, 0.2)', 
     marginHorizontal: 20,
     marginVertical: 20,
     padding: 16,

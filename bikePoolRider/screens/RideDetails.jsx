@@ -106,7 +106,7 @@ const RideDetails = () => {
             const newLocation = { latitude, longitude };
             const {lat, lng} = pickUpLocation;
             const pickupDistance = getDistance(newLocation, {latitude: lat, longitude: lng});
-            if (pickupDistance < 2) {
+            if (pickupDistance <= 1) {
               Toast.show("You are near the pickup location");
               setShowStartRide(true);
               setShowRiding(false);
@@ -116,7 +116,7 @@ const RideDetails = () => {
             const { lat: dropLat, lng: dropLng } = dropLocation;
 
             const dropDistance = getDistance(newLocation, { latitude: dropLat, longitude: dropLng });
-            if (dropDistance < 2) {
+            if (dropDistance <=1) {
               Toast.show("You are near the drop location");
               setShowRiding(false);
               setShowStartRide(false);
@@ -201,7 +201,7 @@ const RideDetails = () => {
         }
       );
       await sendPushNotification(userData.notificationToken,"Ride Ended", "Your ride has ended", "ended");
-      router.push('/home');
+      router.replace(`/(routes)/payments?fare=${rideInfo.charge}`);
     } catch (err) {
       console.log("Error ending ride:", err);
       alert("Failed to end ride. Please try again.");
@@ -299,14 +299,13 @@ const RideDetails = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#121212', 
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    backgroundColor: '#fff',
-    elevation: 2,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)', 
   },
   backButton: {
     padding: 8,
@@ -315,9 +314,10 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     marginLeft: 16,
+    color: '#fff',  
   },
   card: {
-    backgroundColor: '#fff',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 8,
     padding: 16,
     margin: 16,
@@ -339,10 +339,11 @@ const styles = StyleSheet.create({
   driverName: {
     fontSize: 18,
     fontWeight: 'bold',
+    color: '#fff',  
   },
   rating: {
     fontSize: 16,
-    color: '#666',
+    color: '#bbb',  
     marginTop: 4,
   },
   callButton: {
@@ -354,11 +355,11 @@ const styles = StyleSheet.create({
     marginTop: 16,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: '#eee',
+    borderTopColor: 'rgba(255, 255, 255, 0.2)', 
   },
   vehicleText: {
     fontSize: 16,
-    color: '#666',
+    color: '#bbb',
   },
   rideInfoItem: {
     flexDirection: 'row',
@@ -370,12 +371,13 @@ const styles = StyleSheet.create({
   },
   infoLabel: {
     fontSize: 14,
-    color: '#666',
+    color: '#bbb',
   },
   infoValue: {
     fontSize: 16,
     fontWeight: 'bold',
     marginTop: 2,
+    color: '#fff',  
   },
   locationItem: {
     flexDirection: 'row',
@@ -391,11 +393,12 @@ const styles = StyleSheet.create({
   locationText: {
     flex: 1,
     fontSize: 16,
+    color: '#fff',
   },
   locationDivider: {
     height: 20,
     width: 1,
-    backgroundColor: '#ddd',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)', 
     marginLeft: 5,
     marginVertical: 4,
   },
@@ -412,5 +415,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 });
+
 
 export default RideDetails;

@@ -140,6 +140,10 @@ const LoginScreen = () => {
     }
   };
 
+  const handleSignup = () => {
+    router.replace('(routes)/signup');
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView 
@@ -209,7 +213,7 @@ const LoginScreen = () => {
               <View style={styles.signupPromptContainer}>
                 <Text style={styles.signupPromptText}>
                   Don't have an account?{' '}
-                  <Text style={styles.signupLink}>Sign Up</Text>
+                  <Text style={styles.signupLink} onPress={handleSignup}>Sign Up</Text>
                 </Text>
               </View>
 

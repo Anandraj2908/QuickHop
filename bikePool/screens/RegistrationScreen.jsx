@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { 
     View, 
     Text, 
@@ -8,10 +8,11 @@ import {
     SafeAreaView, 
     ScrollView, 
     Modal,
+    Platform,
     ActivityIndicator, 
     Alert
 } from 'react-native';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import axios from 'axios';
 import Toast from '../components/Toast';
@@ -20,42 +21,25 @@ import { LinearGradient } from 'expo-linear-gradient';
 export default function RegistrationScreen() {
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
-    const [vehicleNumber, setVehicleNumber] = useState('');
-    const [vehicleModel, setVehicleModel] = useState('');
-    const [vehicleManufacturer, setVehicleManufacturer] = useState('');
-    const [drivingLicense, setDrivingLicense] = useState('');
-    const [vehicleRegistrationCertificate, setVehicleRegistrationCertificate] = useState('');
-    const [upiId, setUpiId] = useState('');
-    const [gender, setGender] = useState('');
     const [pin, setPin] = useState('');
+    const [gender, setGender] = useState('');
     const [showPinModal, setShowPinModal] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
     const { phoneNumber } = useLocalSearchParams();
     const router = useRouter();
 
-    const isValidVehicleNumber = (number) => {
-        const indianVehicleRegex = /^[A-Z]{2}\d{2}[A-Z]{1,2}\d{4}$/;
-        const bhSeriesRegex = /^BH\d{2}[A-Z]{2}\d{4}$/;
-        return indianVehicleRegex.test(number) || bhSeriesRegex.test(number);
-    };
-  
-
-    const isValidDrivingLicense = (license) => {
-        const indianLicenseRegex = /^[A-Z]{2}\d{13}$/;
-        return indianLicenseRegex.test(license);
-    };
-
-    const handleKeyPress = (key) => {
+    const handleKeyPress = useCallback((key) => {
         if (pin.length < 6) {
             setPin(prev => prev + key);
         }
-    };
+    }, [pin]);
     
-    const handleDelete = () => {
+    const handleDelete = useCallback(() => {
         setPin(prev => prev.slice(0, -1));
-    };
+    }, []);
 
-    const CustomKeypad = () => (
+    const CustomKeypad = useCallback(() => (
         <View style={styles.keypadContainer}>
             {[1, 2, 3, 4, 5, 6, 7, 8, 9, 0].map((num) => (
                 <TouchableOpacity
@@ -73,13 +57,11 @@ export default function RegistrationScreen() {
                 <Ionicons name="backspace-outline" size={24} color="#fff" />
             </TouchableOpacity>
         </View>
-    );
+    ), [handleKeyPress, handleDelete]);
 
     const handleRegistration = async () => {
         try {
-            if (!firstName || !lastName || !pin || !gender || 
-                !vehicleNumber || !vehicleModel || !vehicleManufacturer || 
-                !drivingLicense || !vehicleRegistrationCertificate || !upiId) {
+            if (firstName === '' || lastName === '' || pin === '' || gender === '') {
                 Toast.show('Please fill all fields');
                 return;
             }
@@ -89,32 +71,16 @@ export default function RegistrationScreen() {
                 return;
             }
 
-            if (!isValidVehicleNumber(vehicleNumber)) {
-                Toast.show('Invalid Vehicle Number. Use Indian format or BH series');
-                return;
-            }
-
-            if (!isValidDrivingLicense(drivingLicense)) {
-                Toast.show('Invalid Driving License. Use Indian format');
-                return;
-            }
-
             setLoading(true);
-            const response = await axios.post(`${process.env.EXPO_PUBLIC_SERVER_URI}/riders/signup`, {
+            const response = await axios.post(`${process.env.EXPO_PUBLIC_SERVER_URI}/users/signup`, {
                 firstName,
                 lastName,
                 password: pin,
                 phoneNumber,
-                gender,
-                vehicleNumber,
-                vehicleModel,
-                vehicleManufacturer,
-                drivingLicense,
-                vehicleRegistrationCertificate,
-                upiId
+                gender
             });
             
-            Alert.alert("Registration successful", "You can now login with your phone number and PIN");
+            Alert.alert("Registration successful", "You can now login with your phone number and PIN", )
             router.replace("/(routes)/login");
         } catch (error) {
             console.log("Registration error: ", error);
@@ -133,88 +99,24 @@ export default function RegistrationScreen() {
                 >
                     <Toast/>
                     <Text style={styles.title}>Create Account</Text>
-                    <View style={styles.nameContainer}>
-                        <View style={[styles.inputContainer, { width: '48%' }]}>
-                            <Ionicons name="person-outline" size={20} color="#888" style={styles.inputIcon} />
-                            <TextInput
-                                style={styles.input}
-                                placeholder="First Name"
-                                placeholderTextColor="#666"
-                                value={firstName}
-                                onChangeText={setFirstName}
-                            />
-                        </View>
-                        <View style={[styles.inputContainer, { width: '48%' }]}>
-                            <Ionicons name="person-outline" size={20} color="#888" style={styles.inputIcon} />
-                            <TextInput
-                                style={styles.input}
-                                placeholder="Last Name"
-                                placeholderTextColor="#666"
-                                value={lastName}
-                                onChangeText={setLastName}
-                            />
-                        </View>
-                    </View>
                     <View style={styles.inputContainer}>
-                        <MaterialCommunityIcons name="motorbike" size={20} color="#888" style={styles.inputIcon} />
+                        <Ionicons name="person-outline" size={20} color="#888" style={styles.inputIcon} />
                         <TextInput
                             style={styles.input}
-                            placeholder="Vehicle Number in Indian Format"
+                            placeholder="First Name"
                             placeholderTextColor="#666"
-                            value={vehicleNumber}
-                            onChangeText={setVehicleNumber}
-                            autoCapitalize="characters"
+                            value={firstName}
+                            onChangeText={setFirstName}
                         />
                     </View>
                     <View style={styles.inputContainer}>
-                    <MaterialCommunityIcons name="motorbike" size={20} color="#888" style={styles.inputIcon} />
+                        <Ionicons name="person-outline" size={20} color="#888" style={styles.inputIcon} />
                         <TextInput
                             style={styles.input}
-                            placeholder="Vehicle Model"
+                            placeholder="Last Name"
                             placeholderTextColor="#666"
-                            value={vehicleModel}
-                            onChangeText={setVehicleModel}
-                        />
-                    </View>
-                    <View style={styles.inputContainer}>
-                        <Ionicons name="business-outline" size={20} color="#888" style={styles.inputIcon} />
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Vehicle Manufacturer"
-                            placeholderTextColor="#666"
-                            value={vehicleManufacturer}
-                            onChangeText={setVehicleManufacturer}
-                        />
-                    </View>
-                    <View style={styles.inputContainer}>
-                        <Ionicons name="document-text-outline" size={20} color="#888" style={styles.inputIcon} />
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Driving License"
-                            placeholderTextColor="#666"
-                            value={drivingLicense}
-                            onChangeText={setDrivingLicense}
-                            autoCapitalize="characters"
-                        />
-                    </View>
-                    <View style={styles.inputContainer}>
-                        <Ionicons name="document-attach-outline" size={20} color="#888" style={styles.inputIcon} />
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Vehicle Registration Certificate"
-                            placeholderTextColor="#666"
-                            value={vehicleRegistrationCertificate}
-                            onChangeText={setVehicleRegistrationCertificate}
-                        />
-                    </View>
-                    <View style={styles.inputContainer}>
-                        <Ionicons name="cash-outline" size={20} color="#888" style={styles.inputIcon} />
-                        <TextInput
-                            style={styles.input}
-                            placeholder="UPI ID"
-                            placeholderTextColor="#666"
-                            value={upiId}
-                            onChangeText={setUpiId}
+                            value={lastName}
+                            onChangeText={setLastName}
                         />
                     </View>
                     <View style={styles.inputContainer}>
@@ -333,11 +235,6 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
         paddingTop: 50,
     },
-    nameContainer: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginBottom: 15,
-    },
     title: {
         fontSize: 24,
         color: '#fff',
@@ -415,37 +312,32 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(0,0,0,0.5)',
     },
     modalContent: {
-      backgroundColor: '#1a1a1a',
-      borderTopLeftRadius: 20,
-      borderTopRightRadius: 20,
-      paddingTop: 30,
-      paddingHorizontal: 10,
-      paddingBottom: 40,
-      justifyContent: 'center',
-      alignItems: 'center',
+        backgroundColor: '#1a1a1a',
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
+        padding: 20,
     },
     closeButton: {
-        position: 'absolute',
-        top: 10,
-        right: 10,
-        padding: 10,
+        alignSelf: 'flex-end',
+        marginBottom: 10,
     },
     modalTitle: {
-        fontSize: 20,
         color: '#fff',
+        fontSize: 18,
+        textAlign: 'center',
         marginBottom: 20,
     },
     pinContainer: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
-        width: '70%',
+        justifyContent: 'center',
         marginBottom: 20,
     },
     pinDot: {
-        width: 15,
-        height: 15,
-        borderRadius: 7.5,
+        width: 20,
+        height: 20,
+        borderRadius: 10,
         backgroundColor: '#666',
+        marginHorizontal: 5,
     },
     pinDotFilled: {
         backgroundColor: '#4a6fff',
@@ -453,22 +345,20 @@ const styles = StyleSheet.create({
     keypadContainer: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        justifyContent: 'space-between',
-        width: '80%',
-        marginBottom: 30,
+        justifyContent: 'center',
     },
     keypadButton: {
         width: '30%',
-        height: 60,
-        backgroundColor: '#333',
+        aspectRatio: 1,
         justifyContent: 'center',
         alignItems: 'center',
+        margin: 5,
+        backgroundColor: '#2a2a2a',
         borderRadius: 10,
-        marginBottom: 10,
     },
     keypadText: {
-        fontSize: 20,
         color: '#fff',
+        fontSize: 24,
     },
     continueButton: {
         backgroundColor: '#4a6fff',
@@ -476,11 +366,11 @@ const styles = StyleSheet.create({
         height: 50,
         justifyContent: 'center',
         alignItems: 'center',
-        width: '100%',
+        marginTop: 20,
     },
     continueButtonText: {
         color: '#fff',
         fontSize: 18,
         fontWeight: 'bold',
     },
-  });
+});

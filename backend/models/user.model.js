@@ -31,6 +31,11 @@ const userSchema = new Schema(
             required: true,
             trim: true
         },
+        gender: {
+            type: String,
+            enum: ["Male", "Female"], 
+            required: true,
+        },
         avatar: {
             type: String
         },

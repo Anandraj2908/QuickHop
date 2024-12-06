@@ -511,7 +511,7 @@ const HomeScreen = () => {
               style={styles.statGradient}
             >
               <View style={styles.statHeader}>
-                <Text style={styles.statEmoji}>🚗</Text>
+                <Text style={styles.statEmoji}>🏍</Text>
                 <Text style={styles.statValue}>{driver?.totalRides || '0'}</Text>
               </View>
               <Text style={styles.statLabel}>Total Trips</Text>

@@ -394,9 +394,6 @@ const RidePlanScreen = () => {
         style={styles.backgroundImage}>
         <SafeAreaView style={styles.container}  >
             <Toast/>
-            {/* <View style={styles.user}>
-                <Text style={styles.greeting}>Hello, {user.firstName}!</Text>
-            </View> */}
             {/* Location Selection */}
             <View style={styles.locationContainer}>
                 <TouchableOpacity 
@@ -448,6 +445,19 @@ const RidePlanScreen = () => {
                     </TouchableOpacity>
                 </View>
             )}
+            <TouchableOpacity
+                style={styles.findRideButton}
+                onPress={() => router.push({ pathname: "/(routes)/payments" })}
+            >
+                <Text style={styles.findRideText}>Proxy to payments</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+                style={styles.findRideButton}
+                onPress={() => router.push({ pathname: "/(routes)/rating" })}
+            >
+                <Text style={styles.findRideText}>Proxy to Rating</Text>
+            </TouchableOpacity>
             {/* Location Selection Modal */}
             <Modal
                 visible={showLocations}
@@ -592,6 +602,7 @@ const RidePlanScreen = () => {
 const styles = StyleSheet.create({
     container: {
       flex: 1,
+      paddingTop:60
     },
     backgroundImage: {
         flex: 1,

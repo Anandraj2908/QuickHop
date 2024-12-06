@@ -12,6 +12,8 @@ import {
     refreshAccessToken,
     getUserById,
     getCurrentRide,
+    updateRideRating,
+    getUserByPhoneNumber
 } from "../controllers/user.controller.js";
 
 import { verifyJWT } from "../middlewares/auth.middleware.js";
@@ -28,6 +30,8 @@ router.route("/get-current-user").get(verifyJWT,currentUser);
 router.route("/get-all-rides").get(verifyJWT,getAllRides);
 router.route("/get-user-by-id/:id").get(getUserById);
 router.route("/get-current-ride").get(verifyJWT,getCurrentRide);
+router.route("/update-ride-rating").patch(verifyJWT,updateRideRating);
+router.route("/get-user-by-phonenumber").get(getUserByPhoneNumber);
 router.route("/hello").get(hello);
 
 export default router;

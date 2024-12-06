@@ -11,6 +11,7 @@ dotenv.config();
 
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
+const serviceSid = process.env.TWILIO_SERVICE_SID;
 const client = twilio(accountSid, authToken, { lazyLoading: true });
 
 
@@ -95,20 +96,25 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 });
 
 
-const sendOtp  = asyncHandler( async (phoneNumber) => {
-
-    await client.verify.v2.services(process.env.TWILIO_SERVICE_SID)
-    .verifications.create({
-        to: phoneNumber,
-        channel: 'sms'
-    })
-
-    return res.status(200).json(new ApiResponse(200, phoneNumber, "OTP sent to phone number."));
+const sendOtp  = asyncHandler( async (req,res) => {
+    const { phoneNumber } = req.body;
+    try {
+        await client.verify.v2
+            .services(serviceSid)
+            .verifications.create({
+                to: phoneNumber,
+                channel: 'sms',
+            });
+        return res.status(200).json(new ApiResponse(200, phoneNumber, "OTP sent to phone number."));
+    } catch (error) {
+        console.error("Error sending OTP:", error.message);
+        throw new ApiError(500, `Something went wrong while sending OTP: ${error.message}`);
+    }
 });
 
-const verifyOtp = asyncHandler( async (phoneNumber, code) => {
-    
-    const verification = await client.verify.v2.services(process.env.TWILIO_SERVICE_SID)
+const verifyOtp = asyncHandler( async (req,res) => {
+    const { phoneNumber, code } = req.body;
+    const verification = await client.verify.v2.services(serviceSid)
     .verificationChecks.create({
         to: phoneNumber,
         code
@@ -128,24 +134,22 @@ const signup = asyncHandler(async (req, res) => {
         password, 
         vehicleNumber, 
         vehicleModel, 
-        isElectric, 
         vehicleManufacturer, 
         drivingLicense, 
         vehicleRegistrationCertificate,
-        upiId 
+        upiId ,
+        gender
     } = req.body;
 
-    // Validate required fields
     if (!phoneNumber || !password || !firstName || !lastName ||
         !vehicleNumber || !vehicleModel || !vehicleManufacturer ||
-        !drivingLicense || !vehicleRegistrationCertificate) {
+        !drivingLicense || !vehicleRegistrationCertificate || !gender) {
         throw new ApiError(400, "All fields are required.");
     }
 
     const existingUser = await Rider.findOne({ phoneNumber });
     if (existingUser) throw new ApiError(400, "Phone number is already registered.");
 
-    // Create new rider user
     const newRider = await Rider.create({
         phoneNumber,
         password,
@@ -153,11 +157,11 @@ const signup = asyncHandler(async (req, res) => {
         lastName,
         vehicleNumber,
         vehicleModel,
-        isElectric,
         vehicleManufacturer,
         drivingLicense,
         vehicleRegistrationCertificate,
-        upiId
+        upiId,
+        gender
     });
 
     const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(newRider._id);
@@ -392,6 +396,19 @@ const getCurrentRide = asyncHandler(async (req, res) => {
     }
 });
 
+const getRiderByPhoneNumber = asyncHandler(async (req, res) => {
+    try {
+      const rider = await Rider.findOne({ phoneNumber: req.query.phoneNumber }).select("-password -refreshToken");
+      if (rider) {
+        return res.status(200).json({ success: true, message: "Rider found" });
+      } else {
+        return res.status(200).json({ success: false, message: "Rider not found" });
+      }
+    } catch (error) {
+      throw new ApiError(500, "Something went wrong while fetching rider details");
+    }
+});
+
 const hello = asyncHandler(
     async (req, res) => {
         return res.status(200).json(
@@ -417,6 +434,7 @@ export {
     updateRideStatus,
     getAllRides,
     getCurrentRide,
+    getRiderByPhoneNumber,
     hello
 }
 

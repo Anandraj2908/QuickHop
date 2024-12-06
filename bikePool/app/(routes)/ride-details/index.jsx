@@ -117,7 +117,7 @@ const RideTracking = () => {
             Toast.show("Ride has started, meanwhile you can play the game");
           } else if(notification.request.content.data.orderData === "ended") {
             Toast.show("Thank you for riding with us, ride has been completed");
-            router.push("/(routes)/payments");
+            router.push(`/(routes)/payments?name=${riderData.name}&charge=${riderData.rideCharge}`);
           }
         });
 

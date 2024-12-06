@@ -3,6 +3,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { User } from "../models/user.model.js";
 import { Ride } from "../models/rides.model.js";
+import { Rider } from "../models/rider.model.js";
 import twilio from 'twilio';
 import bcrypt from 'bcrypt';
 import dotenv from 'dotenv';
@@ -12,6 +13,7 @@ dotenv.config();
 
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
+const serviceSid = process.env.TWILIO_SERVICE_SID;
 const client = twilio(accountSid, authToken, { lazyLoading: true });
 
 const generateAccessAndRefreshTokens = async(userId) =>{
@@ -97,20 +99,25 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 
 
 
-const sendOtp  = asyncHandler( async (phoneNumber) => {
-
-    await client.verify.v2.services(process.env.TWILIO_SERVICE_SID)
-    .verifications.create({
-        to: phoneNumber,
-        channel: 'sms'
-    })
-
-    return res.status(200).json(new ApiResponse(200, phoneNumber, "OTP sent to phone number."));
+const sendOtp  = asyncHandler( async (req,res) => {
+    const { phoneNumber } = req.body;
+    try {
+        await client.verify.v2
+            .services(serviceSid)
+            .verifications.create({
+                to: phoneNumber,
+                channel: 'sms',
+            });
+        return res.status(200).json(new ApiResponse(200, phoneNumber, "OTP sent to phone number."));
+    } catch (error) {
+        console.error("Error sending OTP:", error.message);
+        throw new ApiError(500, `Something went wrong while sending OTP: ${error.message}`);
+    }
 });
 
-const verifyOtp = asyncHandler( async (phoneNumber, code) => {
-    
-    const verification = await client.verify.v2.services(process.env.TWILIO_SERVICE_SID)
+const verifyOtp = asyncHandler( async (req,res) => {
+    const { phoneNumber, code } = req.body;
+    const verification = await client.verify.v2.services(serviceSid)
     .verificationChecks.create({
         to: phoneNumber,
         code
@@ -122,10 +129,10 @@ const verifyOtp = asyncHandler( async (phoneNumber, code) => {
 });
 
 const signup = asyncHandler(async (req, res) => {
-    const { phoneNumber, firstName, lastName, password } = req.body;
+    const { phoneNumber, firstName, lastName, password, gender } = req.body;
 
-    if (!phoneNumber || !password || !firstName || !lastName) {
-        throw new ApiError(400, "Phone number, password, first name, and last name are required.");
+    if (!phoneNumber || !password || !firstName || !lastName || !gender) {
+        throw new ApiError(400, "Phone number, password, first name, last name, and gender are required.");
     }
 
     const existingUser = await User.findOne({ phoneNumber });
@@ -136,6 +143,7 @@ const signup = asyncHandler(async (req, res) => {
         password,
         firstName,
         lastName,
+        gender
     });
 
     const {accessToken, refreshToken} = await generateAccessAndRefreshTokens(newUser._id);
@@ -276,6 +284,52 @@ const getCurrentRide = asyncHandler(async (req, res) => {
     }
 });
 
+
+
+const updateRideRating = asyncHandler(async (req, res) => {
+    try{
+        const {rating} = req.body;
+
+        const currentRide = await Ride.findOne({
+            userId: req.user._id,
+        }).sort({ updatedAt: -1 });
+
+        if (!currentRide) {
+            return res.status(404).json(new ApiResponse(404, null, "No ride found"));
+        }
+
+        currentRide.rating = rating;
+        await currentRide.save();
+
+        const noOfRatedRides = await Ride.countDocuments({
+            driverId: currentRide.driverId,
+            rating: { $exists: true, $ne: undefined }
+        });
+        const driver = await Rider.findById(currentRide.driverId);
+        driver.ratings = (driver.ratings + rating) / noOfRatedRides;
+        await driver.save();
+
+        return res.status(200).json(new ApiResponse(200, currentRide, "Ride rating updated successfully"))
+
+    } catch (error) {
+        throw new ApiError(500, "Something went wrong while updating ride rating")
+    }
+});
+
+const getUserByPhoneNumber = asyncHandler(async (req, res) => {
+    try {
+      const user = await User.findOne({ phoneNumber: req.query.phoneNumber }).select("-password -refreshToken");
+      if (user) {
+        return res.status(200).json({ success: true, message: "User found" });
+      } else {
+        return res.status(200).json({ success: false, message: "User not found" });
+      }
+    } catch (error) {
+      throw new ApiError(500, "Something went wrong while fetching user details");
+    }
+});
+  
+
 const hello = asyncHandler(
     async (req, res) => {
         return res.status(200).json(
@@ -295,7 +349,9 @@ export {
     currentUser,
     getAllRides,
     getUserById,
-    getCurrentRide
+    getCurrentRide,
+    updateRideRating,
+    getUserByPhoneNumber
 };
 
 //signup using phone number
