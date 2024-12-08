@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import { View, Text, ActivityIndicator, StyleSheet, TouchableOpacity, Alert, SafeAreaView, Image } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { MaterialIcons, FontAwesome, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import { MaterialIcons, FontAwesome, FontAwesome6, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import useGetUserData from '../hooks/useGetUserData';
 import { router } from 'expo-router';
 import DarkCover from '../assets/images/dark-cover.jpg';
+import specialDates from '../constants/specialDates';
 export default function ProfileScreen() {
   const { loading, user } = useGetUserData();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  
   const handleLogout = async () => {
     setIsLoggingOut(true);
     try {
@@ -29,14 +29,9 @@ export default function ProfileScreen() {
       </View>
     );
   }
-
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.editButton}>
-          <Feather name="edit-2" size={24} color="#fff" />
-        </TouchableOpacity>
-      </View>
+      
 
       <View style={styles.profileSection}>
         <View style={styles.profileImageContainer}>
@@ -47,29 +42,18 @@ export default function ProfileScreen() {
 
       <View style={styles.statsGrid}>
         <View style={styles.statsCard}>
-          <Text style={styles.statsValue}>5</Text>
+          <Text style={styles.statsValue}>{user.totalRides}</Text>
           <Text style={styles.statsLabel}>Rides</Text>
         </View>
         <View style={styles.statsCard}>
-          <Text style={styles.statsValue}>5</Text>
-          <Text style={styles.statsLabel}>Rating</Text>
-        </View>
-        <View style={styles.statsCard}>
-          <Text style={styles.statsValue}>₹ 50</Text>
+          <Text style={styles.statsValue}>₹ {user.totalSpending}</Text>
           <Text style={styles.statsLabel}>Spent</Text>
         </View>
       </View>
 
       <View style={styles.infoSection}>
-        <Text style={styles.sectionTitle}>Account Details</Text>
+        <Text style={styles.sectionTitle}>Account Detail</Text>
         <View style={styles.infoGrid}>
-          <View style={styles.infoItem}>
-            <Feather name="mail" size={20} color="#666" />
-            <View>
-              <Text style={styles.infoLabel}>Email</Text>
-              <Text style={styles.infoValue}>abcd@gmail.com</Text>
-            </View>
-          </View>
           <View style={styles.infoItem}>
             <Feather name="phone" size={20} color="#666" />
             <View>
@@ -77,6 +61,15 @@ export default function ProfileScreen() {
               <Text style={styles.infoValue}>{user.phoneNumber}</Text>
             </View>
           </View>
+        </View>
+      </View>
+      <View style={styles.greetSection}>
+      <MaterialCommunityIcons name="party-popper" size={24} color="#666" />
+        <View style={styles.infoGrid}>
+        <Text style={styles.infoLabel}>
+          Guess what? You officially joined our awesome tribe on {new Date(user.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}! Wanna know the magic behind that day? ✨
+        </Text>
+        <Text style={styles.greetValue}>{specialDates[user.createdAt.slice(5,10)]}</Text>
         </View>
       </View>
 
@@ -94,21 +87,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#121212',
-  },
-  header: {
-    paddingHorizontal: 20,
-    paddingTop: 30,
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-  },
-  editButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 105, 180, 0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    backdropFilter: 'blur(10px)',
+    justifyContent:'center'
   },
   profileSection: {
     alignItems: 'center',
@@ -152,7 +131,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 12,
     alignItems: 'center',
-    minWidth: 100,
+    minWidth: 130,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
   },
@@ -168,7 +147,7 @@ const styles = StyleSheet.create({
   infoSection: {
     backgroundColor: 'rgba(40, 40, 40, 0.7)',
     borderRadius: 20,
-    marginTop: 5,
+    marginVertical: 10,
     marginHorizontal: 20,
     paddingHorizontal: 20,
     paddingVertical: 10,
@@ -202,6 +181,26 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#ffffff',
     fontWeight: '500',
+  },
+  greetSection:{
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(30, 30, 30, 0.6)', 
+    padding: 12,
+    paddingHorizontal:25,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
+    marginHorizontal: 20,
+    marginBottom: 20,
+  },
+  greetValue: {
+    fontSize: 14,
+    color: '#ffffff',
+    fontWeight: '500',
+    marginLeft: 8,
   },
   logoutButton: {
     backgroundColor: 'rgba(255, 105, 180, 0.2)', 

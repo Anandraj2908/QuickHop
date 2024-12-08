@@ -50,6 +50,14 @@ const userSchema = new Schema(
             type: String,
             default: null
         },
+        totalSpending: {
+            type: Number,
+            default: 0
+        },
+        totalRides: {
+            type: Number,
+            default: 0
+        },
     },
     {
         timestamps: true

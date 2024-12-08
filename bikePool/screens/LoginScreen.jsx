@@ -245,7 +245,7 @@ export default function LoginScreen() {
                                 <Text 
                                     style={styles.signupLink} 
                                     onPress={handleSignUp} 
-                                >
+                                > 
                                     Sign Up
                                 </Text>
                             </Text>

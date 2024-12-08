@@ -3,6 +3,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { Rider } from "../models/rider.model.js";
 import { Ride } from "../models/rides.model.js";
+import { User } from "../models/user.model.js";
 import twilio from 'twilio';
 import dotenv from 'dotenv';
 import jwt from 'jsonwebtoken';
@@ -364,6 +365,11 @@ const updateRideStatus = asyncHandler(async (req, res) => {
             rider.totalEarning += rideCharge;
             rider.totalRides += 1;
             await rider.save({validateBeforeSave: false});
+
+            const user = await User.findById(ride.userId);
+            user.totalSpending += rideCharge;
+            user.totalRides += 1;
+            await user.save({validateBeforeSave: false});
         }
 
         return res.status(200).json(new ApiResponse(200, updateRide, "Ride status updated successfully"));

@@ -26,6 +26,8 @@ import useGetUserData from '../hooks/useGetUserData.js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Wallpaper from '../assets/images/ridePlanWallpaper.jpg'
 import RadarScanner from '../components/FindingRiders.jsx';
+import specialDates from '../constants/specialDates';
+
 const { width } = Dimensions.get('window');
 
 const RidePlanScreen = () => {
@@ -394,7 +396,11 @@ const RidePlanScreen = () => {
         style={styles.backgroundImage}>
         <SafeAreaView style={styles.container}  >
             <Toast/>
-            {/* Location Selection */}
+
+            <View style={styles.greeting}>
+                <Text style={styles.greetingTitle} >What's special today 🤔? </Text>
+                <Text style={styles.greetingText}>{specialDates[new Date().toISOString().slice(5, 10)]}</Text>
+            </View>
             <View style={styles.locationContainer}>
                 <TouchableOpacity 
                     style={styles.locationItem}
@@ -614,9 +620,20 @@ const styles = StyleSheet.create({
         padding: 20,
     },
     greeting: {
-        fontSize: 30,
+        padding: 20,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'rgba(0, 0, 0,0.5)',
+    },
+    greetingTitle: {
+        fontSize: 24,
         fontWeight: '600',
         color: '#fff',
+        paddingBottom: 10,
+    },
+    greetingText: {
+        fontSize: 16,
+        color: '#ccc',
     },
     locationContainer: {
       backgroundColor: 'rgba(0, 0, 0,0.5)',
