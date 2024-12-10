@@ -6,9 +6,10 @@ import { useGetDriverData } from '../hooks/useGetRiderData';
 import { router } from 'expo-router';
 import DarkCover from '../assets/images/dark-cover.jpg';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import UserGenderPreferenceSlider from '../components/UserGenderPreferenceSlider';
 
 const ProfileScreen = () => {
-    const {loading, driver} = useGetDriverData();
+  const {loading, driver} = useGetDriverData();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const handleLogout = async () => {
@@ -23,6 +24,43 @@ const ProfileScreen = () => {
     }
   };
 
+  const onPreferenceChange = async(preference) => {
+    try{
+        const accessToken = await AsyncStorage.getItem("accessToken");
+        if(!accessToken){
+            throw new Error("No access token found");
+        }
+
+        await axios.patch(
+          `${process.env.EXPO_PUBLIC_SERVER_URI}/riders/change-user-gender-preference`, 
+          {
+            preference,  
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`, 
+            },
+          }
+        );
+        
+    } catch(err){
+        console.log("Error changing preference", err);
+    } 
+  }
+
+  const handleEditBtnClick = () => {
+    router.push({
+      pathname:'/(routes)/edit',
+      params:{
+        vehicleManufacturer: driver.vehicleManufacturer,
+        vehicleModel: driver.vehicleModel,
+        vehicleNumber: driver.vehicleNumber,
+        phoneNumber: driver.phoneNumber,
+        vehicleRegistrationCertificate: driver.vehicleRegistrationCertificate,
+      }
+    })
+  };
+ 
   if (loading) {
     return (
       <View style={styles.loaderContainer}>
@@ -42,7 +80,7 @@ const ProfileScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.editButton}>
+        <TouchableOpacity style={styles.editButton} onPress={handleEditBtnClick}>
           <Feather name="edit-2" size={24} color="#fff" />
         </TouchableOpacity>
       </View>
@@ -96,6 +134,7 @@ const ProfileScreen = () => {
               <Text style={styles.infoValue}>{driver.phoneNumber}</Text>
             </View>
           </View>
+          <UserGenderPreferenceSlider user={driver} onPreferenceChange={onPreferenceChange}/>
         </View>
       </View>
 
@@ -148,7 +187,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
-    marginBottom: 16,
     overflow: 'hidden',
   },
   name: {
@@ -161,7 +199,6 @@ const styles = StyleSheet.create({
   },
   badgeContainer: {
     flexDirection: 'row',
-    marginBottom: 5,
   },
   badge: {
     flexDirection: 'row',
@@ -180,7 +217,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     paddingHorizontal: 20,
-    marginBottom: 10,
     marginTop: 10,
   },
   statsCard: {
@@ -206,7 +242,8 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginTop: 10,
     marginHorizontal: 20,
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
   },
@@ -214,17 +251,18 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: '#ffffff',
-    marginBottom: 16,
+    marginBottom: 10,
   },
   infoGrid: {
-    gap: 16,
+    gap: 8,
   },
   infoItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
     backgroundColor: 'rgba(30, 30, 30, 0.6)', 
-    padding: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.05)',

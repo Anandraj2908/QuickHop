@@ -58,6 +58,11 @@ const userSchema = new Schema(
             type: Number,
             default: 0
         },
+        riderGenderPreference: {
+            type: String,
+            enum:["Male", "Female", "Both"],
+            default: "Both"
+        }
     },
     {
         timestamps: true

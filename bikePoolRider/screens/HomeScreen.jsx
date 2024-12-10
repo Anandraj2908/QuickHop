@@ -207,25 +207,21 @@ const HomeScreen = () => {
   //LOCATION UPDATES **
   const sendLocationUpdate = async (location) => {
     try {
-      const accessToken = await AsyncStorage.getItem("accessToken");
-      const res = await axios.get(`${process.env.EXPO_PUBLIC_SERVER_URI}/riders/get-current-rider`, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
-      if (res.data.data) {
+      if (driver?._id) {
         if (ws.readyState === WebSocket.OPEN) {
           const message = JSON.stringify({
             type: "locationUpdate",
             data: location,
             role: "driver",
-            driver: res.data.data._id,
+            driver: driver._id,
+            gender: driver.gender,
+            userGenderPreference: driver.userGenderPreference,
           });
           ws.send(message);
         }
       }
     } catch (error) {
-      console.log(error);
+      console.log("Send Location Update error: ",error);
     }
   };
 
@@ -244,7 +240,7 @@ const HomeScreen = () => {
         watcherRef.current = await GeoLocation.watchPositionAsync(
           {
             accuracy: GeoLocation.Accuracy.High,
-            timeInterval: 10000,
+            timeInterval: 5000,
             distanceInterval: 1,
           },
           async (position) => {
@@ -427,6 +423,23 @@ const HomeScreen = () => {
     fetchStatus();
   },[]);
 
+  const sendOffStatusUpdate = async () => {
+    try {
+      if (driver?._id) {
+        if (ws.readyState === WebSocket.OPEN) {
+          const message = JSON.stringify({
+            type: "driverOffStatus",
+            role: "driver",
+            driver: driver._id,
+          });
+          ws.send(message);
+        }
+      }
+    } catch (error) {
+      console.log("Send Location Update error: ",error);
+    }
+  };
+
   const toggleAcceptingRides = async () => {
     if (!loading) {
       startRippleAnimation();
@@ -444,8 +457,10 @@ const HomeScreen = () => {
           }
         );
         if (response.data.data) {
+          sendOffStatusUpdate();
           setIsAcceptingRides(!isAcceptingRides);
           await AsyncStorage.setItem("status", response.data.data.status);
+
         }
       } catch (error) {
         console.error("Error changing status:", error);

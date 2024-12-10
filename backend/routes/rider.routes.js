@@ -16,6 +16,7 @@ import {
     createNewRide,
     getCurrentRide,
     getRiderByPhoneNumber,
+    changeUserGenderPreference,
 } from "../controllers/rider.controller.js";
 
 import { verifyJWT } from "../middlewares/riderAuth.middleware.js";
@@ -36,6 +37,7 @@ router.route("/get-all-rides").get(verifyJWT,getAllRides);
 router.route("/get-current-ride").get(verifyJWT,getCurrentRide);
 router.route("/refresh-access-token").get(verifyJWT,refreshAccessToken);
 router.route("/get-rider-by-phonenumber").get(getRiderByPhoneNumber);
+router.route("/change-user-gender-preference").patch(verifyJWT,changeUserGenderPreference);
 router.route("/hello").get(hello);
 
 export default router;

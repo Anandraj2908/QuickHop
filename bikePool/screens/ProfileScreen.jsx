@@ -6,6 +6,8 @@ import useGetUserData from '../hooks/useGetUserData';
 import { router } from 'expo-router';
 import DarkCover from '../assets/images/dark-cover.jpg';
 import specialDates from '../constants/specialDates';
+import RiderGenderPreferenceSlider from '../components/RiderGenderPreferenceSlider';
+import axios from "axios";
 export default function ProfileScreen() {
   const { loading, user } = useGetUserData();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -20,6 +22,30 @@ export default function ProfileScreen() {
       setIsLoggingOut(false);
     }
   };
+
+  const onPreferenceChange = async(preference) => {
+    try{
+        const accessToken = await AsyncStorage.getItem("accessToken");
+        if(!accessToken){
+            throw new Error("No access token found");
+        }
+
+        await axios.patch(
+          `${process.env.EXPO_PUBLIC_SERVER_URI}/users/change-rider-gender-preference`, 
+          {
+            preference,  
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`, 
+            },
+          }
+        );
+        
+    } catch(err){
+        console.log("Error changing preference", err);
+    } 
+  }
 
   if (loading) {
     return (
@@ -61,6 +87,7 @@ export default function ProfileScreen() {
               <Text style={styles.infoValue}>{user.phoneNumber}</Text>
             </View>
           </View>
+          <RiderGenderPreferenceSlider user={user} onPreferenceChange={onPreferenceChange}/>
         </View>
       </View>
       <View style={styles.greetSection}>
@@ -104,7 +131,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
-    marginBottom: 16,
+    marginBottom: 5,
     overflow: 'hidden',
   },
   profileImage: {
@@ -124,12 +151,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     paddingHorizontal: 10,
     marginBottom: 5,
-    marginTop: 10,
+    marginTop: 5,
   },
   statsCard: {
     backgroundColor: 'rgba(40, 40, 40, 0.7)',
     borderRadius: 16,
-    padding: 12,
+    padding: 5,
     alignItems: 'center',
     minWidth: 130,
     borderWidth: 1,
@@ -150,7 +177,7 @@ const styles = StyleSheet.create({
     marginVertical: 10,
     marginHorizontal: 20,
     paddingHorizontal: 20,
-    paddingVertical: 10,
+    paddingVertical: 5,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
   },
@@ -158,7 +185,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: '#ffffff',
-    marginBottom: 16,
+    marginBottom: 5,
   },
   infoGrid: {
     gap: 16,
@@ -194,7 +221,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.05)',
     marginHorizontal: 20,
-    marginBottom: 20,
   },
   greetValue: {
     fontSize: 14,

@@ -139,6 +139,7 @@ const OTPVerificationScreen = () => {
       </View>
     );
   };
+  
   const handleLoginRedirect = () => {
     
     router.replace("/(routes)/login");

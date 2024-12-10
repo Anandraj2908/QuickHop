@@ -415,6 +415,17 @@ const getRiderByPhoneNumber = asyncHandler(async (req, res) => {
     }
 });
 
+const changeUserGenderPreference = asyncHandler(async (req, res) => {
+    try {
+        const rider = await Rider.findById(req.user._id);
+        rider.userGenderPreference = req.body.preference;
+        await rider.save();
+        return res.status(200).json(new ApiResponse(200, "User gender preference updated successfully"));
+    } catch (error){
+        throw new ApiError(500, "Something went wrong while updating")
+    }
+})
+
 const hello = asyncHandler(
     async (req, res) => {
         return res.status(200).json(
@@ -441,6 +452,7 @@ export {
     getAllRides,
     getCurrentRide,
     getRiderByPhoneNumber,
+    changeUserGenderPreference,
     hello
 }
 

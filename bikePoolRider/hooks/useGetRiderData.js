@@ -3,7 +3,7 @@ import axios from "axios";
 import { useEffect, useState } from "react";
 
 export const useGetDriverData = () => {
-  const [driver, setDriver] = useState(null); // Set initial type as null
+  const [driver, setDriver] = useState(null); 
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

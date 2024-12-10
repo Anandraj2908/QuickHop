@@ -329,6 +329,16 @@ const getUserByPhoneNumber = asyncHandler(async (req, res) => {
     }
 });
   
+const changeRiderGenderPreference = asyncHandler(async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id);
+        user.riderGenderPreference = req.body.preference;
+        await user.save();
+        return res.status(200).json(new ApiResponse(200, "Rider gender preference updated successfully"));
+    } catch (error){
+        throw new ApiError(500, "Something went wrong while updating")
+    }
+})
 
 const hello = asyncHandler(
     async (req, res) => {
@@ -351,7 +361,8 @@ export {
     getUserById,
     getCurrentRide,
     updateRideRating,
-    getUserByPhoneNumber
+    getUserByPhoneNumber,
+    changeRiderGenderPreference
 };
 
 //signup using phone number

@@ -268,7 +268,6 @@ const RidePlanScreen = () => {
 
         try{
             const driverIds = drivers.map((driver) => driver.id).join(",");
-            console.log("Driver ids:", driverIds);
             const response = await axios.post(
             `${process.env.EXPO_PUBLIC_SERVER_URI}/riders/get-riders-by-id`,
             {
@@ -306,18 +305,22 @@ const RidePlanScreen = () => {
 
     const requestNearbyDrivers = () => {
         if (currentLocation && wsConnected) {
-        ws.current.send(
-            JSON.stringify({
-            type: "requestRide",
-            role: "user",
-            latitude: currentLocation.latitude,
-            longitude: currentLocation.longitude,
-            })
-        );
         setIsDriverLoading(true);
         setShowRiders(true);
         setTimeout(() => {
-            getNearbyDrivers();
+            if(user){
+                ws.current.send(
+                    JSON.stringify({
+                    type: "requestRide",
+                    role: "user",
+                    latitude: currentLocation.latitude,
+                    longitude: currentLocation.longitude,
+                    gender: user.gender,
+                    riderGenderPreference: user.riderGenderPreference,
+                    })
+                );
+                getNearbyDrivers();
+            }
             setIsDriverLoading(false);
         }, 10000);
         }
@@ -451,20 +454,7 @@ const RidePlanScreen = () => {
                     </TouchableOpacity>
                 </View>
             )}
-            <TouchableOpacity
-                style={styles.findRideButton}
-                onPress={() => router.push({ pathname: "/(routes)/payments" })}
-            >
-                <Text style={styles.findRideText}>Proxy to payments</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-                style={styles.findRideButton}
-                onPress={() => router.push({ pathname: "/(routes)/rating" })}
-            >
-                <Text style={styles.findRideText}>Proxy to Rating</Text>
-            </TouchableOpacity>
-            {/* Location Selection Modal */}
+            
             <Modal
                 visible={showLocations}
                 animationType="slide"

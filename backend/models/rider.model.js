@@ -109,6 +109,11 @@ const riderSchema = new Schema(
             type: String,
             enum: ['active', 'inactive'],
             default: "inactive"
+        },
+        userGenderPreference: {
+            type: String,
+            enum:["Male", "Female", "Both"],
+            default: "Both"
         }
     },
     {
