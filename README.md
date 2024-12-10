@@ -3,11 +3,7 @@
 
 This guide provides a step-by-step process to set up the project, including the backend, bikepool (user app), bikepoolrider (rider app), and socket services.
 
-<<<<<<< HEAD
 ## Note: This project setup guide is currently under development. Your feedback is highly appreciated and will help us improve.
-=======
-
->>>>>>> cb21edc83349175f945427e79ac6294d28ca5527
 
 ## Prerequisites
 
@@ -175,11 +171,7 @@ This guide provides steps to obtain the Google Maps API Key, MongoDB Atlas conne
 1. Go to [MongoDB Atlas](https://www.mongodb.com/cloud/atlas) and create an account.
 2. Create a new cluster and set up a database.
 3. Obtain the connection string and replace `your_mongodb_atlas_connection_string` in the `.env` file of the backend.
-<<<<<<< HEAD
 4. For detailed guidance on connecting a database in a MERN stack project with debugging techniques, refer to the video: [How to connect database in MERN with debugging](https://youtu.be/w4z8Py-UoNk?si=lzlaCBKauBXnoB8m).
-=======
-
->>>>>>> cb21edc83349175f945427e79ac6294d28ca5527
 
 
 
